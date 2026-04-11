@@ -305,7 +305,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     return (
       <section className="catalog-admin-page">
         <header className="catalog-admin-header">
-          <button type="button" className="btn" onClick={onBack}>Back</button>
+          <button type="button" className="btn" onClick={() => window.history.back()}>Back</button>
           <h2>Catalog Manager</h2>
         </header>
         <div className="catalog-admin-status">Checking permissions...</div>
@@ -317,7 +317,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     return (
       <section className="catalog-admin-page">
         <header className="catalog-admin-header">
-          <button type="button" className="btn" onClick={onBack}>Back</button>
+          <button type="button" className="btn" onClick={() => window.history.back()}>Back</button>
           <h2>Catalog Manager</h2>
         </header>
         <div className="catalog-admin-status">Please login to continue.</div>
@@ -329,7 +329,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     return (
       <section className="catalog-admin-page">
         <header className="catalog-admin-header">
-          <button type="button" className="btn" onClick={onBack}>Back</button>
+          <button type="button" className="btn" onClick={() => window.history.back()}>Back</button>
           <h2>Catalog Manager</h2>
         </header>
         <div className="catalog-admin-status">Access denied. Only admin and seller users can edit categories and products.</div>
@@ -781,7 +781,18 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   return (
     <section className="catalog-admin-page">
       <header className="catalog-admin-header" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <button type="button" className="btn" onClick={() => window.history.back()} style={{ order: 0 }}>
+        <button
+          type="button"
+          className="btn"
+          style={{ order: 0 }}
+          onClick={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              window.location.href = '/';
+            }
+          }}
+        >
           Back
         </button>
         <h2 style={{ margin: 0, flex: 1, textAlign: 'left' }}>Catalog Manager</h2>

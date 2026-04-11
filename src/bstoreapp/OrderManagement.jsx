@@ -83,7 +83,7 @@ export default function OrderManagementPage({ onBack, currentUser, isAdmin = fal
           <h1 className="h3 mb-1">{isAdmin ? 'All Orders' : 'My Orders'}</h1>
           <p className="bstore-muted mb-0">Track live order status updates from seller/admin.</p>
         </div>
-        <button className="btn btn-outline-light order-appbar__back" type="button" onClick={onBack}>
+        <button className="btn btn-outline-light order-appbar__back" type="button" onClick={() => window.history.back()}>
           Back
         </button>
       </div>

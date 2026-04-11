@@ -127,7 +127,17 @@ export default function ProfilePage({ user, onBack, onLoggedOut }) {
   return (
     <section className="bstore-page bstore-page--narrow">
       <div className="bstore-appbar mb-3">
-        <button className="btn btn-outline-secondary" type="button" onClick={onBack}>
+        <button
+          className="btn btn-outline-secondary"
+          type="button"
+          onClick={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              window.location.href = '/';
+            }
+          }}
+        >
           Back
         </button>
         <h1 className="bstore-appbar__title mb-0">Profile</h1>

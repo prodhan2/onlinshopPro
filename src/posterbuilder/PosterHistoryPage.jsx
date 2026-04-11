@@ -36,7 +36,7 @@ export default function PosterHistoryPage({ onBack }) {
   return (
     <section className="poster-history-page">
       <header className="poster-history-topbar">
-        <button type="button" className="btn" onClick={onBack}>Back</button>
+        <button type="button" className="btn" onClick={() => window.history.back()}>Back</button>
         <h2>Poster History</h2>
         <button type="button" className="btn danger" onClick={clearHistory}>Clear</button>
       </header>

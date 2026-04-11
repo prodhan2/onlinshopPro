@@ -71,9 +71,7 @@ export default function ProductDetailsPage({ product, currentUser, onBack, onOpe
   return (
     <section className="bstore-page">
       <div className="bstore-appbar mb-3">
-        <button className="btn btn-outline-secondary" type="button" onClick={onBack}>
-          Back
-        </button>
+        {/* Back button removed */}
         <h1 className="bstore-appbar__title mb-0">Details</h1>
         <div className="bstore-appbar__actions">
           <button className="btn btn-primary" type="button" onClick={onOpenCart}>

@@ -461,9 +461,7 @@ export default function AdminDashboardPage({
   return (
     <section className="bstore-page">
       <div className="bstore-appbar mb-3">
-        <button className="btn btn-outline-secondary" type="button" onClick={onBack}>
-          Back
-        </button>
+        {/* Back button removed */}
         <h1 className="bstore-appbar__title mb-0">Admin Dashboard</h1>
         <div className="bstore-appbar__actions">
           <span className="badge text-bg-light">Admin</span>

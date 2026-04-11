@@ -40,9 +40,7 @@ const WishlistPage = ({ onBack, currentUser }) => {
       <div className="wishlist-page">
         <div className="glass-card p-5 text-center">
           <h2 className="h3 fw-bold mb-3">Sign in to view wishlist</h2>
-          <button className="btn btn-primary" onClick={onBack}>
-            Back to shopping
-          </button>
+          {/* Back button removed */}
         </div>
       </div>
     );
@@ -57,9 +55,7 @@ const WishlistPage = ({ onBack, currentUser }) => {
       <nav className="navbar navbar-expand-lg navbar-dark py-3 sticky-top category-navbar">
         <div className="container-fluid px-0">
           <span className="navbar-brand fw-bold">My Wishlist</span>
-          <button className="btn btn-outline-light ms-auto" onClick={onBack}>
-            Back to Shopping
-          </button>
+          {/* Back button removed */}
         </div>
       </nav>
 
@@ -93,9 +89,7 @@ const WishlistPage = ({ onBack, currentUser }) => {
               <p className="text-muted mb-4">
                 Add items to your wishlist to save them for later
               </p>
-              <button className="btn btn-primary" onClick={onBack}>
-                Continue Shopping
-              </button>
+              {/* Back button removed */}
             </div>
           </div>
         ) : (

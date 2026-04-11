@@ -2009,7 +2009,7 @@ export default function PosterBuilder({ onBack, initialHistoryOpen = false }) {
   return (
     <div className="poster-page" ref={rootRef}>
       {typeof onBack === 'function' ? (
-        <button type="button" className="poster-back-btn editor-btn" onClick={onBack}>
+        <button type="button" className="poster-back-btn editor-btn" onClick={() => window.history.back()}>
           Back To App
         </button>
       ) : null}

@@ -144,98 +144,173 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
 
   return (
     <div className="seller-dashboard">
-      <div className="dashboard-header">
-        <div className="seller-info" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <nav className="navbar navbar-expand-lg seller-appbar-pro mb-4">
+        <div className="container-fluid">
+          <button
+            className="btn btn-light btn-sm me-2"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.href = '/';
+              }
+            }}
+          >
+            ← Back
+          </button>
           <img
             src={currentUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentUser.displayName || currentUser.email || 'Seller')}
             alt="Seller"
-            style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid #764ba2' }}
+            className="rounded-circle border border-2 border-light me-2"
+            style={{ width: 48, height: 48, objectFit: 'cover' }}
           />
-          <div>
-            <div style={{ fontWeight: 'bold', fontSize: '1.2em' }}>{currentUser.displayName || 'Seller'}</div>
-            <div style={{ color: '#666' }}>{currentUser.email}</div>
+          <div className="flex-grow-1">
+            <div className="fw-bold text-white">{currentUser.displayName || 'Seller'}</div>
+            <div className="small text-white-50">{currentUser.email}</div>
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
-          <button
-            className="btn btn-secondary"
-            onClick={onBack ? onBack : () => window.history.back()}
-            style={{ order: 0 }}
-          >
-            Back
-          </button>
-          <h2 style={{ margin: 0, flex: 1, textAlign: 'left' }}>Seller Dashboard</h2>
-          <button className="btn btn-success" onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))} style={{ order: 2 }}>
-            Add Product
+          <button className="btn btn-success ms-auto" onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))}>
+            + Add Product
           </button>
         </div>
-      </div>
+      </nav>
+      <style>{`
+        .seller-appbar-pro {
+          background: linear-gradient(90deg, #1976d2 0%, #1565c0 100%);
+          color: #fff;
+        }
+      `}</style>
+      <style>{`
+        .seller-appbar-pro {
+          background: linear-gradient(90deg, #1976d2 0%, #1565c0 100%);
+          color: #fff;
+          padding: 0 0 0 0;
+          margin-bottom: 32px;
+          box-shadow: 0 4px 16px rgba(21,101,192,0.08);
+        }
+        .seller-appbar-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 18px 24px;
+        }
+        .seller-appbar-left {
+          display: flex;
+          align-items: center;
+        }
+        .seller-avatar-pro {
+          width: 54px;
+          height: 54px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid #fff;
+          margin-right: 16px;
+        }
+        .seller-info-pro {
+          display: flex;
+          flex-direction: column;
+        }
+        .seller-name-pro {
+          font-weight: 700;
+          font-size: 1.15rem;
+        }
+        .seller-email-pro {
+          font-size: 0.95rem;
+          color: #e3e3e3;
+        }
+        .seller-appbar-right {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+      `}</style>
 
       {/* Stats Section - Mobile List View */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-value">{stats.totalProducts}</div>
-          <div className="stat-label">Total Products</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{stats.totalOrders}</div>
-          <div className="stat-label">Total Orders</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{stats.confirmedOrders}</div>
-          <div className="stat-label">Confirmed Orders</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">${stats.totalSales}</div>
-          <div className="stat-label">Total Sales</div>
+      <div className="container-fluid mb-3">
+        <div className="row g-3">
+          <div className="col-6 col-md-3">
+            <div className="card text-center bg-primary text-white h-100">
+              <div className="card-body">
+                <div className="display-6 fw-bold">{stats.totalProducts}</div>
+                <div className="card-title">Total Products</div>
+              </div>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="card text-center bg-success text-white h-100">
+              <div className="card-body">
+                <div className="display-6 fw-bold">{stats.totalOrders}</div>
+                <div className="card-title">Total Orders</div>
+              </div>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="card text-center bg-info text-white h-100">
+              <div className="card-body">
+                <div className="display-6 fw-bold">{stats.confirmedOrders}</div>
+                <div className="card-title">Confirmed Orders</div>
+              </div>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="card text-center bg-warning text-dark h-100">
+              <div className="card-body">
+                <div className="display-6 fw-bold">${stats.totalSales}</div>
+                <div className="card-title">Total Sales</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="tab-navigation">
-        <button
-          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
-          Overview
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
-          onClick={() => setActiveTab('orders')}
-        >
-          Orders ({filteredOrders.length})
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'products' ? 'active' : ''}`}
-          onClick={() => setActiveTab('products')}
-        >
-          Products ({products.length})
-        </button>
-      </div>
+      <ul className="nav nav-tabs mb-3 container-fluid">
+        <li className="nav-item">
+          <button className={`nav-link${activeTab === 'overview' ? ' active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+        </li>
+        <li className="nav-item">
+          <button className={`nav-link${activeTab === 'orders' ? ' active' : ''}`} onClick={() => setActiveTab('orders')}>Orders ({filteredOrders.length})</button>
+        </li>
+        <li className="nav-item">
+          <button className={`nav-link${activeTab === 'products' ? ' active' : ''}`} onClick={() => setActiveTab('products')}>Products ({products.length})</button>
+        </li>
+      </ul>
 
       {/* Overview Tab */}
       {activeTab === 'overview' && (
-        <div className="tab-content">
-          <div className="overview-section">
-            <h3>Quick Stats</h3>
-            <div className="quick-stats">
-              <div className="quick-stat">
-                <span className="label">Pending Orders:</span>
-                <span className="value">{orders.filter((o) => o.status === 'pending').length}</span>
+        <div className="container-fluid tab-content">
+          <div className="row g-3">
+            <div className="col-6 col-md-3">
+              <div className="card text-center">
+                <div className="card-body">
+                  <div className="fw-bold">Pending Orders</div>
+                  <div className="display-6">{orders.filter((o) => o.status === 'pending').length}</div>
+                </div>
               </div>
-              <div className="quick-stat">
-                <span className="label">Processing:</span>
-                <span className="value">{orders.filter((o) => o.status === 'processing').length}</span>
+            </div>
+            <div className="col-6 col-md-3">
+              <div className="card text-center">
+                <div className="card-body">
+                  <div className="fw-bold">Processing</div>
+                  <div className="display-6">{orders.filter((o) => o.status === 'processing').length}</div>
+                </div>
               </div>
-              <div className="quick-stat">
-                <span className="label">Delivered:</span>
-                <span className="value">{orders.filter((o) => o.status === 'delivered').length}</span>
+            </div>
+            <div className="col-6 col-md-3">
+              <div className="card text-center">
+                <div className="card-body">
+                  <div className="fw-bold">Delivered</div>
+                  <div className="display-6">{orders.filter((o) => o.status === 'delivered').length}</div>
+                </div>
               </div>
-              <div className="quick-stat">
-                <span className="label">Avg Order Value:</span>
-                <span className="value">
-                  ${orders.length > 0 ? (stats.totalSales / orders.length).toFixed(2) : 0}
-                </span>
+            </div>
+            <div className="col-6 col-md-3">
+              <div className="card text-center">
+                <div className="card-body">
+                  <div className="fw-bold">Avg Order Value</div>
+                  <div className="display-6">${orders.length > 0 ? (stats.totalSales / orders.length).toFixed(2) : 0}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -244,79 +319,60 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
 
       {/* Orders Tab */}
       {activeTab === 'orders' && (
-        <div className="tab-content">
-          <div className="filter-section">
-            <label>Filter by Status:</label>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-              <option value="all">All Orders</option>
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+        <div className="container-fluid tab-content">
+          <div className="row mb-3">
+            <div className="col-12 col-md-6">
+              <label className="form-label">Filter by Status:</label>
+              <select className="form-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                <option value="all">All Orders</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
           </div>
-
-          <div className="orders-list">
+          <div className="row g-3">
             {filteredOrders.length === 0 ? (
-              <p className="empty-state">No orders found</p>
+              <div className="col-12"><p className="text-center text-muted py-5">No orders found</p></div>
             ) : (
               filteredOrders.map((order) => (
-                <div key={order.id} className="order-card seller-order">
-                  <div className="order-header">
-                    <div className="order-meta">
-                      <strong>Order ID:</strong> <code>{order.id.slice(0, 8)}</code>
-                      <strong>Customer:</strong> {order.userName || 'Unknown'}
-                      <strong>Date:</strong> {new Date(order.createdAt?.seconds * 1000).toLocaleDateString()}
-                    </div>
-                    <span className={`status-badge status-${order.status}`}>{order.status}</span>
-                  </div>
-
-                  <div className="order-items">
-                    {order.items?.map((item, idx) => (
-                      <div key={idx} className="item-row">
-                        <span>{item.name}</span>
-                        <span>×{item.quantity}</span>
-                        <span className="price">${(item.price * item.quantity).toFixed(2)}</span>
+                <div key={order.id} className="col-12 col-md-6 col-lg-4">
+                  <div className="card h-100">
+                    <div className="card-header d-flex justify-content-between align-items-center">
+                      <div>
+                        <strong>Order ID:</strong> <code>{order.id.slice(0, 8)}</code><br/>
+                        <strong>Customer:</strong> {order.userName || 'Unknown'}<br/>
+                        <strong>Date:</strong> {new Date(order.createdAt?.seconds * 1000).toLocaleDateString()}
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="order-footer">
-                    <div className="total">Total: ${order.totalPrice?.toFixed(2) || 0}</div>
-                    <div className="action-buttons">
-                      {order.status === 'pending' && (
-                        <button
-                          className="btn btn-warning"
-                          onClick={() => handleUpdateOrderStatus(order.id, 'processing')}
-                        >
-                          Mark Processing
-                        </button>
-                      )}
-                      {order.status === 'processing' && (
-                        <button
-                          className="btn btn-success"
-                          onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
-                        >
-                          Mark Confirmed
-                        </button>
-                      )}
-                      {order.status === 'confirmed' && (
-                        <button
-                          className="btn btn-info"
-                          onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
-                        >
-                          Mark Delivered
-                        </button>
-                      )}
-                      {(order.status === 'pending' || order.status === 'processing') && (
-                        <button
-                          className="btn btn-danger"
-                          onClick={() => handleUpdateOrderStatus(order.id, 'cancelled')}
-                        >
-                          Cancel Order
-                        </button>
-                      )}
+                      <span className={`badge status-badge status-${order.status}`}>{order.status}</span>
+                    </div>
+                    <div className="card-body">
+                      {order.items?.map((item, idx) => (
+                        <div key={idx} className="d-flex justify-content-between border-bottom py-1 small">
+                          <span>{item.name}</span>
+                          <span>×{item.quantity}</span>
+                          <span className="fw-bold">${(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <div className="fw-bold">Total: ${order.totalPrice?.toFixed(2) || 0}</div>
+                      <div className="d-flex flex-wrap gap-2">
+                        {order.status === 'pending' && (
+                          <button className="btn btn-warning btn-sm" onClick={() => handleUpdateOrderStatus(order.id, 'processing')}>Mark Processing</button>
+                        )}
+                        {order.status === 'processing' && (
+                          <button className="btn btn-success btn-sm" onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}>Mark Confirmed</button>
+                        )}
+                        {order.status === 'confirmed' && (
+                          <button className="btn btn-info btn-sm" onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}>Mark Delivered</button>
+                        )}
+                        {(order.status === 'pending' || order.status === 'processing') && (
+                          <button className="btn btn-danger btn-sm" onClick={() => handleUpdateOrderStatus(order.id, 'cancelled')}>Cancel Order</button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -328,43 +384,39 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
 
       {/* Products Tab */}
       {activeTab === 'products' && (
-        <div className="tab-content">
-          <div className="products-list">
+        <div className="container-fluid tab-content">
+          <div className="row g-3">
             {products.length === 0 ? (
-              <div className="empty-state">
-                No products yet
-                <br />
-                <button className="btn btn-success" onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))} style={{marginTop: '16px'}}>Add Product</button>
+              <div className="col-12 text-center text-muted py-5">
+                No products yet<br/>
+                <button className="btn btn-success mt-3" onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))}>Add Product</button>
               </div>
             ) : (
               products.map((product) => (
-                <div key={product.id} className="product-row seller-product">
-                  <div className="product-info">
-                    <img
-                      src={product.imageUrl || product.Image || 'https://via.placeholder.com/60'}
-                      alt={product.name}
-                      className="product-thumb"
-                    />
-                    <div className="product-details">
-                      <strong>{product.name}</strong>
-                      <p>{product.description?.slice(0, 100)}</p>
+                <div key={product.id} className="col-12 col-md-6 col-lg-4">
+                  <div className="card h-100">
+                    <div className="card-body d-flex flex-column align-items-start">
+                      <div className="d-flex align-items-center w-100 mb-2">
+                        <img
+                          src={product.imageUrl || product.Image || 'https://via.placeholder.com/60'}
+                          alt={product.name}
+                          className="rounded me-2"
+                          style={{ width: 60, height: 60, objectFit: 'cover' }}
+                        />
+                        <div className="flex-grow-1">
+                          <strong>{product.name}</strong>
+                          <p className="mb-1 small text-muted">{product.description?.slice(0, 100)}</p>
+                        </div>
+                      </div>
+                      <div className="mb-2">
+                        <span className="fw-bold">${product.price}</span>
+                        {product.oldPrice && <span className="text-decoration-line-through text-muted ms-2">${product.oldPrice}</span>}
+                      </div>
+                      <div className="mb-2 small text-muted">
+                        <span>{product.category}</span> | <span>Stock: {product.stock || 0}</span>
+                      </div>
+                      {/* Edit button and inline edit form removed as requested */}
                     </div>
-                  </div>
-                  <div className="product-pricing">
-                    <span className="price">${product.price}</span>
-                    {product.oldPrice && <span className="old-price">${product.oldPrice}</span>}
-                  </div>
-                  <div className="product-stats">
-                    <span>{product.category}</span>
-                    <span>Stock: {product.stock || 0}</span>
-                  </div>
-                  <div className="product-actions">
-                    <button
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => setEditingProduct(product)}
-                    >
-                      Edit
-                    </button>
                   </div>
                 </div>
               ))

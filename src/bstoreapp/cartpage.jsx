@@ -42,9 +42,7 @@ export default function CartPage({ currentUser, onBack, onRequireLogin, onChecko
   return (
     <section className="bstore-page">
       <div className="bstore-appbar mb-4">
-        <button className="btn btn-outline-secondary" type="button" onClick={onBack}>
-          Back
-        </button>
+        {/* Back button removed */}
         <h1 className="bstore-appbar__title mb-0">Cart</h1>
         <div className="d-flex gap-2 bstore-appbar__actions">
           <button className="btn btn-outline-danger" type="button" onClick={clearCart} disabled={!cartState.items.length}>

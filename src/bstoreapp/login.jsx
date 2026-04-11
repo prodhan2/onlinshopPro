@@ -143,7 +143,7 @@ export default function LoginPage({ onSuccess, onBack }) {
       <div style={{ width: '100%', height: 60, background: 'linear-gradient(90deg, #2196f3 0%, #1976d2 100%)', display: 'flex', alignItems: 'center', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.06)', marginBottom: 32 }}>
         {onBack && (
           <button
-            onClick={onBack}
+            onClick={() => window.history.back()}
             style={{
               marginLeft: 18,
               marginRight: 16,

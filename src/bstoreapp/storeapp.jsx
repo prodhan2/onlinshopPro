@@ -127,7 +127,6 @@ export default function BStoreApp() {
         <ProductDetailsPage
           product={route.payload}
           currentUser={currentUser}
-          onBack={() => setRoute({ name: 'category', payload: null })}
           onOpenCart={() => setRoute({ name: 'cart', payload: null })}
           onRequireLogin={() => setRoute({ name: 'login', payload: null })}
           onBuyNow={checkout => setRoute({ name: 'payment', payload: checkout })}
@@ -137,7 +136,6 @@ export default function BStoreApp() {
       {route.name === 'cart' ? (
         <CartPage
           currentUser={currentUser}
-          onBack={() => setRoute({ name: 'category', payload: null })}
           onRequireLogin={() => setRoute({ name: 'login', payload: null })}
           onCheckout={checkout => setRoute({ name: 'payment', payload: checkout })}
         />
@@ -146,7 +144,6 @@ export default function BStoreApp() {
       {route.name === 'payment' ? (
         <PaymentPage
           checkout={route.payload}
-          onBack={() => setRoute({ name: 'cart', payload: null })}
           onDone={() => setRoute({ name: 'orders', payload: null })}
         />
       ) : null}
@@ -155,39 +152,34 @@ export default function BStoreApp() {
         <OrderManagementPage
           currentUser={currentUser}
           isAdmin={isAdmin}
-          onBack={() => setRoute({ name: 'category', payload: null })}
         />
       ) : null}
 
       {route.name === 'login' ? (
         <LoginPage
           onSuccess={() => setRoute({ name: 'profile', payload: null })}
-          onBack={() => setRoute({ name: 'category', payload: null })}
         />
       ) : null}
 
       {route.name === 'profile' ? (
         <ProfilePage
           user={currentUser}
-          onBack={() => setRoute({ name: 'category', payload: null })}
           onLoggedOut={() => setRoute({ name: 'category', payload: null })}
         />
       ) : null}
 
       {route.name === 'poster-builder' ? (
         <PosterBuilder
-          onBack={() => window.history.back()}
           initialHistoryOpen={Boolean(route.payload?.openHistory)}
         />
       ) : null}
 
       {route.name === 'poster-history' ? (
-        <PosterHistoryPage onBack={() => window.history.back()} />
+        <PosterHistoryPage />
       ) : null}
 
       {route.name === 'catalog-admin' ? (
         <CatalogAdminPage
-          onBack={() => window.history.back()}
           onOpenOrders={() => setRoute({ name: 'orders', payload: null })}
           canEdit={isAdmin || isSeller}
           authReady={!adminLoading}
@@ -199,7 +191,6 @@ export default function BStoreApp() {
         isAdmin ? (
           <AdminDashboardPage
             currentUser={currentUser}
-            onBack={() => window.history.back()}
             onOpenCatalogManager={() => setRoute({ name: 'catalog-admin', payload: null })}
             onOpenPosterBuilder={() => setRoute({ name: 'poster-builder', payload: null })}
             onOpenPosterHistory={() => setRoute({ name: 'poster-history', payload: null })}
@@ -221,7 +212,6 @@ export default function BStoreApp() {
       {route.name === 'wishlist' ? (
         <WishlistPage
           currentUser={currentUser}
-          onBack={() => window.history.back()}
         />
       ) : null}
 
@@ -229,7 +219,6 @@ export default function BStoreApp() {
         isSeller ? (
           <SellerDashboardPage
             currentUser={currentUser}
-            onBack={() => window.history.back()}
           />
         ) : (
           <section className="bstore-page">

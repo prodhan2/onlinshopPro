@@ -271,7 +271,7 @@ export default function PaymentPage({ checkout, onBack, onDone }) {
   return (
     <section className="bstore-page">
       <div className="bstore-appbar mb-4">
-        <button className="btn btn-outline-secondary" type="button" onClick={onBack}>
+        <button className="btn btn-outline-secondary" type="button" onClick={() => window.history.back()}>
           Back
         </button>
         <h1 className="bstore-appbar__title mb-0">Payment</h1>
