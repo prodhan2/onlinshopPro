@@ -1,0 +1,102 @@
+.poster-history-page {
+  min-height: 100vh;
+  padding: 1rem;
+  background: radial-gradient(circle at 10% 0%, rgba(15, 116, 191, 0.18), transparent 34%), #0b1119;
+  color: #edf4ff;
+  font-family: Manrope, 'Trebuchet MS', sans-serif;
+}
+
+.poster-history-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid #30435f;
+  background: linear-gradient(145deg, rgba(20, 30, 48, 0.95), rgba(16, 25, 40, 0.9));
+  margin-bottom: 1rem;
+}
+
+.poster-history-topbar h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.poster-history-topbar .btn {
+  border: 1px solid #3f5f87;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #23344c, #1d2c40);
+  color: #edf4ff;
+  min-height: 40px;
+  padding: 0.45rem 0.85rem;
+}
+
+.poster-history-topbar .btn.danger {
+  border-color: #84425b;
+  background: linear-gradient(135deg, #6d2b45, #582139);
+}
+
+.poster-history-empty {
+  border: 1px solid #30435f;
+  border-radius: 12px;
+  padding: 1rem;
+  background: rgba(21, 30, 45, 0.9);
+}
+
+.poster-history-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.poster-history-group h3 {
+  margin: 0 0 0.45rem;
+  color: #9eb9db;
+  font-size: 0.95rem;
+}
+
+.poster-history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.75rem;
+}
+
+.poster-history-card {
+  border: 1px solid #324966;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1f2b3f, #1a2537);
+}
+
+.poster-history-card img {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  display: block;
+}
+
+.poster-history-card .meta {
+  padding: 0.6rem;
+}
+
+.poster-history-card .time {
+  font-size: 0.75rem;
+  color: #b8c8de;
+  margin-bottom: 0.5rem;
+}
+
+.poster-history-card .actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.poster-history-card .actions a {
+  color: #8cc6ff;
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+.poster-history-card .actions a:hover {
+  text-decoration: underline;
+}

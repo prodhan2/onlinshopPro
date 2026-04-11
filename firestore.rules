@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAdmin() {
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['admin', 'subadmin'];
+    }
+    
+    function isSeller() {
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['seller', 'admin', 'subadmin'];
+    }
+    
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+    
+    function isProductOwner(createdByUid) {
+      return request.auth.uid == createdByUid || isAdmin();
+    }
+    
+    function isOrderOwner(userUid) {
+      return request.auth.uid == userUid || isAdmin();
+    }
+    
+    // Profiles collection - Users can read their own, admins can read/write all
+    match /profiles/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid);
+      allow delete: if isAdmin();
+    }
+    
+    // Products collection - Everyone can read, sellers/admins create/edit own
+    match /products/{productId} {
+      allow read: if true; // Public read access
+      allow create: if isSeller() && request.resource.data.createdBy.uid == request.auth.uid;
+      allow update: if isProductOwner(resource.data.createdBy.uid);
+      allow delete: if isProductOwner(resource.data.createdBy.uid);
+    }
+    
+    // Orders collection - Users see own, admins see all
+    match /orders/{orderId} {
+      allow read: if isOrderOwner(resource.data.userUid);
+      allow write: if isOrderOwner(resource.data.userUid) && !resource.data.status; // Only create
+      allow update: if isAdmin() || (isOrderOwner(resource.data.userUid) && !request.resource.data.status.exists()); // Status updates by admin only
+      allow delete: if isAdmin();
+    }
+    
+    // Categories collection - Public read, admin write
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Banners collection - Public read, admin write
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Payment details collection - Admin only
+    match /paymentDetails/{document=**} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Notifications collection - Users see own, admins see all
+    match /notifications/{uid}/userNotifications/{notificationId} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid) || isAdmin();
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+    
+    // Wishlist collection - Users manage own
+    match /wishlists/{uid}/items/{itemId} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid);
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+  }
+}
