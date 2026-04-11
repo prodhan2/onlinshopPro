@@ -780,9 +780,11 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
 
   return (
     <section className="catalog-admin-page">
-      <header className="catalog-admin-header">
-        <button type="button" className="btn" onClick={onBack}>Back</button>
-        <h2>Catalog Manager</h2>
+      <header className="catalog-admin-header" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <button type="button" className="btn" onClick={() => window.history.back()} style={{ order: 0 }}>
+          Back
+        </button>
+        <h2 style={{ margin: 0, flex: 1, textAlign: 'left' }}>Catalog Manager</h2>
         <div style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0' }}>
           <button
             type="button"

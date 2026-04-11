@@ -438,6 +438,93 @@ export default function CategoryPage({
             </button>
           </div>
         </div>
+
+      </nav>
+
+      <div className="container-fluid px-0 py-4">
+        <div className="category-hero glass-card p-4 p-lg-5 mb-4">
+          <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+            <div>
+              <p className="section-kicker mb-2">Category Page</p>
+              <h1 className="display-5 fw-bold mb-2">Fast shopping view</h1>
+              <p className="hero-copy mb-0">
+                Category browsing, search, banners, and products all in one responsive JSX page.
+              </p>
+            </div>
+            <div className="category-status text-end text-lg-start">
+              <span className={`badge ${offline ? 'text-bg-warning' : 'text-bg-success'}`}>
+                {offline ? 'Offline cache' : 'Live data'}
+              </span>
+              {noticeText ? <p className="mb-0 mt-2 notice-text">{noticeText}</p> : null}
+            </div>
+          </div>
+
+          <div className="row g-3 align-items-center">
+            <div className="col-12 col-lg-8">
+              <div className="input-group input-group-lg">
+                <span className="input-group-text bg-dark text-white border-0">Search</span>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={searchTerm}
+                  onChange={event => setSearchTerm(event.target.value)}
+                  placeholder="Search products, descriptions, or sellers"
+                />
+                {searchTerm ? (
+                  <button
+                    type="button"
+                    className="btn btn-outline-light"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    Clear
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <div className="col-12 col-lg-4 text-lg-end">
+              <div className="shop-metrics">
+                <div>
+                  <strong>{products.length}</strong>
+                  <span>Products</span>
+                </div>
+                <div>
+                  <strong>{categories.length > 0 ? categories.length - 1 : 0}</strong>
+                  <span>Categories</span>
+                </div>
+                <div>
+                  <strong>{filteredProducts.length}</strong>
+                  <span>Matches</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Horizontal Category List below search box */}
+          <div className="category-horizontal-list mb-4 px-1">
+            <div style={{
+              display: 'flex',
+              overflowX: 'auto',
+              gap: '0.75rem',
+              padding: '0.5rem 0',
+              WebkitOverflowScrolling: 'touch',
+            }}>
+              {categories.map(category => (
+                <button
+                  key={category.id}
+                  type="button"
+                  className={
+                    selectedCategory === category.id
+                      ? 'btn btn-dark category-chip flex-shrink-0'
+                      : 'btn btn-outline-light category-chip flex-shrink-0'
+                  }
+                  style={{ minWidth: 110, whiteSpace: 'nowrap' }}
+                  onClick={() => setSelectedCategory(category.id)}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          </div>
       </nav>
 
       <div className="container-fluid px-0 py-4">

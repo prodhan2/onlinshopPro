@@ -156,15 +156,22 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
             <div style={{ color: '#666' }}>{currentUser.email}</div>
           </div>
         </div>
-        <div style={{ marginLeft: 'auto' }}>
-          <h2 style={{ margin: 0 }}>Seller Dashboard</h2>
-          <button className="btn btn-secondary" onClick={onBack} style={{ marginTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={onBack ? onBack : () => window.history.back()}
+            style={{ order: 0 }}
+          >
             Back
+          </button>
+          <h2 style={{ margin: 0, flex: 1, textAlign: 'left' }}>Seller Dashboard</h2>
+          <button className="btn btn-success" onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))} style={{ order: 2 }}>
+            Add Product
           </button>
         </div>
       </div>
 
-      {/* Stats Section */}
+      {/* Stats Section - Mobile List View */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value">{stats.totalProducts}</div>
@@ -324,7 +331,11 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
         <div className="tab-content">
           <div className="products-list">
             {products.length === 0 ? (
-              <p className="empty-state">No products yet</p>
+              <div className="empty-state">
+                No products yet
+                <br />
+                <button className="btn btn-success" onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))} style={{marginTop: '16px'}}>Add Product</button>
+              </div>
             ) : (
               products.map((product) => (
                 <div key={product.id} className="product-row seller-product">
@@ -379,6 +390,7 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
           border-radius: 8px;
         }
 
+        /* Stats Grid - Desktop */
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -674,7 +686,48 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
           color: #666;
         }
 
+        /* ========== MOBILE SPECIFIC STYLES ========== */
         @media (max-width: 768px) {
+          .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+          }
+
+          .dashboard-header > div:last-child {
+            width: 100%;
+            flex-wrap: wrap;
+          }
+
+          /* Stats Mobile List View */
+          .stats-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .stat-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+
+          .stat-card .stat-value {
+            font-size: 1.8rem;
+            margin: 0;
+            font-weight: 700;
+          }
+
+          .stat-card .stat-label {
+            font-size: 1rem;
+            opacity: 1;
+            font-weight: 500;
+            text-align: right;
+          }
+
           .order-header {
             flex-direction: column;
             align-items: flex-start;
@@ -690,8 +743,19 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
             align-items: flex-start;
           }
 
-          .stats-grid {
-            grid-template-columns: 1fr;
+          .product-actions {
+            width: 100%;
+            justify-content: flex-end;
+          }
+
+          .tab-navigation {
+            overflow-x: auto;
+            padding-bottom: 5px;
+          }
+
+          .tab-btn {
+            white-space: nowrap;
+            padding: 10px 15px;
           }
         }
       `}</style>

@@ -3,8 +3,17 @@ import { signOut, updateProfile } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
+
 export default function ProfilePage({ user, onBack, onLoggedOut }) {
   const [formData, setFormData] = useState({
+    fullName: user?.displayName ?? '',
+    bloodGroup: '',
+    phone: '',
+    village: '',
+    upazilla: '',
+    zilla: '',
+  });
+  const [initialData, setInitialData] = useState({
     fullName: user?.displayName ?? '',
     bloodGroup: '',
     phone: '',
@@ -36,14 +45,16 @@ export default function ProfilePage({ user, onBack, onLoggedOut }) {
         const data = profileSnap.exists() ? profileSnap.data() : {};
 
         if (!ignore) {
-          setFormData({
+          const loaded = {
             fullName: data.fullName || user.displayName || '',
             bloodGroup: data.bloodGroup || '',
             phone: data.phone || '',
             village: data.village || '',
             upazilla: data.upazilla || '',
             zilla: data.zilla || '',
-          });
+          };
+          setFormData(loaded);
+          setInitialData(loaded);
         }
       } catch {
         if (!ignore) {
@@ -235,11 +246,13 @@ export default function ProfilePage({ user, onBack, onLoggedOut }) {
               </div>
             ) : null}
 
-            <div className="col-12 d-flex gap-2 justify-content-end">
-              <button className="btn btn-primary" type="submit" disabled={saving}>
-                {saving ? 'Saving...' : 'Save profile'}
-              </button>
-            </div>
+            {JSON.stringify(formData) !== JSON.stringify(initialData) && (
+              <div className="col-12 d-flex gap-2 justify-content-end">
+                <button className="btn btn-primary" type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : 'Save profile'}
+                </button>
+              </div>
+            )}
           </form>
         )}
       </div>

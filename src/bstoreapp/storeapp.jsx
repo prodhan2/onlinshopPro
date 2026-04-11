@@ -83,6 +83,13 @@ export default function BStoreApp() {
     setRoute({ name: 'category', payload: null });
   }
 
+  // Listen for custom event to open CatalogAdminPage from SellerDashboardPage
+  useEffect(() => {
+    const handler = () => setRoute({ name: 'catalog-admin', payload: null });
+    window.addEventListener('open-catalog-admin', handler);
+    return () => window.removeEventListener('open-catalog-admin', handler);
+  }, []);
+
   return (
     <main className="bstore-shell">
       {route.name === 'category' ? (
@@ -169,18 +176,18 @@ export default function BStoreApp() {
 
       {route.name === 'poster-builder' ? (
         <PosterBuilder
-          onBack={() => setRoute({ name: 'category', payload: null })}
+          onBack={() => window.history.back()}
           initialHistoryOpen={Boolean(route.payload?.openHistory)}
         />
       ) : null}
 
       {route.name === 'poster-history' ? (
-        <PosterHistoryPage onBack={() => setRoute({ name: 'category', payload: null })} />
+        <PosterHistoryPage onBack={() => window.history.back()} />
       ) : null}
 
       {route.name === 'catalog-admin' ? (
         <CatalogAdminPage
-          onBack={() => setRoute({ name: 'category', payload: null })}
+          onBack={() => window.history.back()}
           onOpenOrders={() => setRoute({ name: 'orders', payload: null })}
           canEdit={isAdmin || isSeller}
           authReady={!adminLoading}
@@ -192,7 +199,7 @@ export default function BStoreApp() {
         isAdmin ? (
           <AdminDashboardPage
             currentUser={currentUser}
-            onBack={() => setRoute({ name: 'category', payload: null })}
+            onBack={() => window.history.back()}
             onOpenCatalogManager={() => setRoute({ name: 'catalog-admin', payload: null })}
             onOpenPosterBuilder={() => setRoute({ name: 'poster-builder', payload: null })}
             onOpenPosterHistory={() => setRoute({ name: 'poster-history', payload: null })}
@@ -214,7 +221,7 @@ export default function BStoreApp() {
       {route.name === 'wishlist' ? (
         <WishlistPage
           currentUser={currentUser}
-          onBack={() => setRoute({ name: 'category', payload: null })}
+          onBack={() => window.history.back()}
         />
       ) : null}
 
@@ -222,7 +229,7 @@ export default function BStoreApp() {
         isSeller ? (
           <SellerDashboardPage
             currentUser={currentUser}
-            onBack={() => setRoute({ name: 'category', payload: null })}
+            onBack={() => window.history.back()}
           />
         ) : (
           <section className="bstore-page">
