@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getWishlist, removeFromWishlist, clearWishlist } from './utils/wishlistUtils.js';
 import './styles.css';
 
 const WishlistPage = ({ onBack, currentUser }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadWishlist();
@@ -35,44 +37,103 @@ const WishlistPage = ({ onBack, currentUser }) => {
     }
   };
 
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate('/');
+    }
+  };
+
   if (!currentUser) {
     return (
       <div className="wishlist-page">
-        <div className="glass-card p-5 text-center">
-          <h2 className="h3 fw-bold mb-3">Sign in to view wishlist</h2>
-          {/* Back button removed */}
+        <nav className="navbar navbar-expand-lg navbar-dark py-3 sticky-top category-navbar">
+          <div className="container-fluid px-0">
+            <div className="d-flex align-items-center gap-2">
+              <button
+                className="btn btn-link text-light p-0 d-flex align-items-center"
+                type="button"
+                aria-label="Go back"
+                title="Back"
+                onClick={handleBack}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                <span className="d-none d-sm-inline ms-1">Back</span>
+              </button>
+              <span className="navbar-brand fw-bold">My Wishlist</span>
+            </div>
+          </div>
+        </nav>
+        <div className="container py-5">
+          <div className="glass-card p-5 text-center">
+            <div className="mb-4" style={{ fontSize: '4rem' }}>🔐</div>
+            <h2 className="h3 fw-bold mb-3">Sign in to view wishlist</h2>
+            <p className="text-muted mb-4">Please sign in to see your saved items</p>
+            <button className="btn btn-primary" onClick={handleBack}>
+              Go Back
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   if (loading) {
-    return <div className="wishlist-page"><div className="spinner">Loading...</div></div>;
+    return (
+      <div className="wishlist-page">
+        <div className="container py-5">
+          <div className="glass-card p-5 text-center">
+            <div className="spinner-border text-primary mb-3" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="text-muted">Loading your wishlist...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <main className="page-shell wishlist-page">
       <nav className="navbar navbar-expand-lg navbar-dark py-3 sticky-top category-navbar">
         <div className="container-fluid px-0">
-          <span className="navbar-brand fw-bold">My Wishlist</span>
-          {/* Back button removed */}
+          <div className="d-flex align-items-center gap-2">
+            <button
+              className="btn btn-link text-light p-0 d-flex align-items-center"
+              type="button"
+              aria-label="Go back"
+              title="Back"
+              onClick={handleBack}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              <span className="d-none d-sm-inline ms-1">Back</span>
+            </button>
+            <span className="navbar-brand fw-bold">My Wishlist</span>
+          </div>
         </div>
       </nav>
 
-      <div className="container-fluid px-0 py-4">
+      <div className="container-fluid px-3 py-4">
         <div className="glass-card p-4 p-lg-5 mb-4">
-          <div className="d-flex justify-content-between align-items-center">
+          <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
             <div>
-              <h1 className="display-5 fw-bold mb-2">Wishlist</h1>
+              <h1 className="display-6 fw-bold mb-2">My Wishlist</h1>
               <p className="text-muted mb-0">
                 {items.length === 0
                   ? 'Your wishlist is empty'
-                  : `${items.length} item${items.length !== 1 ? 's' : ''} in your wishlist`}
+                  : `${items.length} item${items.length !== 1 ? 's' : ''} saved`}
               </p>
             </div>
             {items.length > 0 && (
               <button
-                className="btn btn-outline-danger"
+                className="btn btn-outline-danger btn-sm"
                 onClick={handleClearWishlist}
               >
                 Clear All
@@ -89,77 +150,80 @@ const WishlistPage = ({ onBack, currentUser }) => {
               <p className="text-muted mb-4">
                 Add items to your wishlist to save them for later
               </p>
-              {/* Back button removed */}
+              <button className="btn btn-primary" onClick={handleBack}>
+                Start Shopping
+              </button>
             </div>
           </div>
         ) : (
-          <div className="wishlist-items">
-            <div className="row g-4">
-              {items.map((item) => {
-                const finalPrice = item.discount > 0
-                  ? item.price - (item.price * item.discount) / 100
-                  : item.price;
-                const originalPrice = item.discount > 0
-                  ? item.price
-                  : Math.round(item.price * 1.08);
+          <div className="row g-3 g-md-4">
+            {items.map((item) => {
+              const finalPrice = item.discount > 0
+                ? item.price - (item.price * item.discount) / 100
+                : item.price;
+              const originalPrice = item.discount > 0
+                ? item.price
+                : Math.round(item.price * 1.08);
 
-                return (
-                  <div key={item.id} className="col-12 col-sm-6 col-lg-3">
-                    <div className="glass-card product-card h-100 p-2 wishlist-item">
-                      <div className="product-image-wrap">
-                        <img
-                          src={item.image || item.imageUrl || '/vite.svg'}
-                          alt={item.name}
-                          className="product-image"
-                          loading="lazy"
-                        />
+              return (
+                <div key={item.id} className="col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+                  <div className="glass-card product-card h-100 p-2 wishlist-item">
+                    <div className="product-image-wrap">
+                      <img
+                        src={item.image || item.imageUrl || '/vite.svg'}
+                        alt={item.name}
+                        className="product-image"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.src = '/vite.svg';
+                        }}
+                      />
+                      {item.discount > 0 && (
+                        <span className="product-badge product-badge--discount">
+                          -{Math.round(item.discount)}%
+                        </span>
+                      )}
+                      <button
+                        className="wishlist-remove-btn"
+                        onClick={() => handleRemoveItem(item.id)}
+                        title="Remove from wishlist"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="product-body p-2 p-lg-3">
+                      <h3 className="product-title mb-2">{item.name}</h3>
+
+                      <div className="d-flex align-items-baseline gap-2 mb-2 flex-wrap">
+                        <strong className="product-price">৳{finalPrice.toFixed(0)}</strong>
                         {item.discount > 0 && (
-                          <span className="product-badge product-badge--discount">
-                            -{Math.round(item.discount)}%
-                          </span>
+                          <span className="product-old-price">৳{originalPrice.toFixed(0)}</span>
                         )}
-                        <button
-                          className="wishlist-remove-btn"
-                          onClick={() => handleRemoveItem(item.id)}
-                          title="Remove from wishlist"
-                        >
-                          ✕
-                        </button>
                       </div>
 
-                      <div className="product-body p-2 p-lg-3">
-                        <h3 className="product-title mb-2">{item.name}</h3>
+                      {item.seller && (
+                        <p className="text-muted small mb-2 text-truncate">{item.seller}</p>
+                      )}
 
-                        <div className="d-flex align-items-baseline gap-2 mb-2">
-                          <strong className="product-price">৳{finalPrice.toFixed(0)}</strong>
-                          {item.discount > 0 && (
-                            <span className="product-old-price">৳{originalPrice.toFixed(0)}</span>
-                          )}
-                        </div>
+                      {item.stock !== undefined && (
+                        <p className={`small mb-2 ${item.stock > 0 ? 'text-success' : 'text-danger'}`}>
+                          {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
+                        </p>
+                      )}
 
-                        {item.seller && (
-                          <p className="text-muted small mb-2">{item.seller}</p>
-                        )}
-
-                        {item.stock !== undefined && (
-                          <p className={`small mb-2 ${item.stock > 0 ? 'text-success' : 'text-danger'}`}>
-                            {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
-                          </p>
-                        )}
-
-                        <button
-                          type="button"
-                          className="btn product-cta w-100"
-                          disabled={item.stock === 0}
-                        >
-                          Add to Cart
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="btn product-cta w-100"
+                        disabled={item.stock === 0}
+                      >
+                        {item.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                      </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

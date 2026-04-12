@@ -70,9 +70,30 @@ export default function ProductDetailsPage({ product, currentUser, onBack, onOpe
 
   return (
     <section className="bstore-page">
-      <div className="bstore-appbar mb-3">
-        {/* Back button removed */}
-        <h1 className="bstore-appbar__title mb-0">Details</h1>
+      <div className="bstore-appbar mb-3 d-flex align-items-center justify-content-between">
+        <div className="d-flex align-items-center gap-2">
+          <button
+            className="btn btn-link text-dark p-0 me-2 d-flex align-items-center"
+            type="button"
+            aria-label="Go back"
+            title="Back"
+            onClick={() => {
+              if (typeof onBack === 'function') {
+                onBack();
+              } else if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.href = '/';
+              }
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            <span className="d-none d-sm-inline ms-1">Back</span>
+          </button>
+          <h1 className="bstore-appbar__title mb-0">Details</h1>
+        </div>
         <div className="bstore-appbar__actions">
           <button className="btn btn-primary" type="button" onClick={onOpenCart}>
             Go to cart

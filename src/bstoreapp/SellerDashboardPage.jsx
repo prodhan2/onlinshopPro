@@ -1,57 +1,49 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { FaBox, FaShoppingCart, FaDollarSign, FaCheckCircle, FaEdit, FaTrash, FaPlus, FaChartLine, FaUsers, FaEye, FaArrowUp, FaArrowDown, FaStar, FaCalendar } from 'react-icons/fa';
+import ShimmerImage from './ShimmerImage';
+import { splitProductImages } from './models';
 import './bstoreapp.css';
 
-const SellerDashboardPage = ({ currentUser, onBack }) => {
+const SellerDashboardPage = ({ currentUser }) => {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState({});
   const [activeTab, setActiveTab] = useState('overview');
-  const [editingProduct, setEditingProduct] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [animatedStats, setAnimatedStats] = useState(false);
+  const navigate = useNavigate();
 
-  // Fetch seller's products and orders with localStorage cache
+  // Fetch seller's products and orders
   useEffect(() => {
-    const cacheKey = `seller-dashboard-cache-${currentUser.uid}`;
-    const cache = localStorage.getItem(cacheKey);
-    if (cache) {
-      try {
-        const parsed = JSON.parse(cache);
-        setProducts(parsed.products || []);
-        setOrders(parsed.orders || []);
-        setStats(parsed.stats || {});
-        setLoading(false);
-      } catch {}
-    }
-
     const fetchSellerData = async () => {
       try {
-        // Fetch products created by this seller
         const productsSnapshot = await getDocs(collection(db, 'products'));
         const sellerProducts = [];
-        productsSnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.createdBy?.uid === currentUser.uid) {
-            sellerProducts.push({ id: doc.id, ...data });
+        productsSnapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data();
+          if (data.createdBy?.uid === currentUser.uid || data.sellerId === currentUser.uid) {
+            sellerProducts.push({ id: docSnapshot.id, ...data });
           }
         });
 
-        // Fetch all orders and filter by seller's products
         const ordersSnapshot = await getDocs(collection(db, 'orders'));
         const sellerOrders = [];
-        ordersSnapshot.forEach((doc) => {
-          const data = doc.data();
+        ordersSnapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data();
           const hasSellerProduct = data.items?.some((item) =>
             sellerProducts.find((p) => p.id === item.id)
           );
           if (hasSellerProduct) {
-            sellerOrders.push({ id: doc.id, ...data });
+            sellerOrders.push({ id: docSnapshot.id, ...data });
           }
         });
 
-        // Calculate stats
         const totalSales = sellerOrders.reduce((sum, order) => {
           const sellerItems = order.items?.filter((item) =>
             sellerProducts.find((p) => p.id === item.id)
@@ -68,37 +60,33 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
           totalOrders: sellerOrders.length,
           confirmedOrders,
           totalSales: totalSales.toFixed(2),
+          pendingOrders: sellerOrders.filter((o) => o.status === 'pending').length,
+          deliveredOrders: sellerOrders.filter((o) => o.status === 'delivered').length,
+          conversionRate: sellerProducts.length > 0 ? ((confirmedOrders / sellerProducts.length) * 100).toFixed(1) : 0,
         };
 
         setProducts(sellerProducts);
         setOrders(sellerOrders);
         setStats(statsObj);
         setLoading(false);
-
-        // Save to cache
-        localStorage.setItem(cacheKey, JSON.stringify({
-          products: sellerProducts,
-          orders: sellerOrders,
-          stats: statsObj,
-          cachedAt: Date.now(),
-        }));
+        
+        // Trigger animation
+        setTimeout(() => setAnimatedStats(true), 100);
       } catch (error) {
         console.error('Error fetching seller data:', error);
         setLoading(false);
       }
     };
 
-    // Always fetch in background to update cache
     fetchSellerData();
   }, [currentUser.uid]);
 
-  // Update order status
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
     const statusMessages = {
-      processing: 'Processing your order...',
+      processing: 'Your order has been confirmed and is being processed.',
       confirmed: 'Your order has been confirmed by seller.',
-      delivered: 'Your order has been delivered.',
-      cancelled: 'Your order has been cancelled by seller.',
+      delivered: 'Your order has been delivered successfully.',
+      cancelled: 'Your order has been cancelled.',
     };
 
     try {
@@ -130,7 +118,13 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
       );
     } catch (error) {
       console.error('Error updating order status:', error);
+      alert('Failed to update order status. Please try again.');
     }
+  };
+
+  const handleViewProduct = (product) => {
+    setSelectedProduct(product);
+    setShowProductModal(true);
   };
 
   const filteredOrders = useMemo(() => {
@@ -138,284 +132,363 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
     return orders.filter((order) => order.status === filterStatus);
   }, [orders, filterStatus]);
 
+  const getStatusBadgeClass = (status) => {
+    const badges = {
+      pending: 'badge-pending',
+      processing: 'badge-processing',
+      confirmed: 'badge-confirmed',
+      delivered: 'badge-delivered',
+      cancelled: 'badge-cancelled',
+    };
+    return badges[status] || 'badge-pending';
+  };
+
   if (loading) {
-    return <div className="seller-dashboard loading">Loading...</div>;
+    return (
+      <div className="seller-dashboard loading-state">
+        <div className="modern-loader">
+          <div className="loader-spinner"></div>
+          <p className="loader-text">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="seller-dashboard">
-      <nav className="navbar navbar-expand-lg seller-appbar-pro mb-4">
-        <div className="container-fluid">
-          <button
-            className="btn btn-light btn-sm me-2"
-            onClick={() => {
-              if (window.history.length > 1) {
-                window.history.back();
-              } else {
-                window.location.href = '/';
-              }
-            }}
-          >
-            ← Back
-          </button>
-          <img
-            src={currentUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentUser.displayName || currentUser.email || 'Seller')}
-            alt="Seller"
-            className="rounded-circle border border-2 border-light me-2"
-            style={{ width: 48, height: 48, objectFit: 'cover' }}
-          />
-          <div className="flex-grow-1">
-            <div className="fw-bold text-white">{currentUser.displayName || 'Seller'}</div>
-            <div className="small text-white-50">{currentUser.email}</div>
+    <div className="seller-dashboard-pro">
+      {/* Modern Gradient Navbar */}
+      <nav className="seller-navbar-modern">
+        <div className="seller-navbar-content">
+          <div className="seller-navbar-left">
+            <button
+              className="btn-back-seller-modern"
+              onClick={() => window.history.length > 1 ? window.history.back() : navigate('/')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              <span className="btn-back-text">Back</span>
+            </button>
+            <div className="seller-info-modern">
+              <div className="seller-avatar-modern">
+                <img
+                  src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName || currentUser.email || 'Seller')}&background=667eea&color=fff`}
+                  alt="Seller"
+                  className="seller-avatar-img"
+                />
+                <div className="avatar-status-indicator"></div>
+              </div>
+              <div className="seller-details-modern">
+                <h4 className="seller-name-modern">{currentUser.displayName || 'Seller'}</h4>
+                <p className="seller-email-modern">{currentUser.email}</p>
+                <span className="seller-badge-modern">Active Seller</span>
+              </div>
+            </div>
           </div>
-          <button className="btn btn-success ms-auto" onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))}>
-            + Add Product
-          </button>
+          <div className="seller-navbar-right">
+            <button 
+              className="btn btn-add-product-modern" 
+              onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))}
+            >
+              <FaPlus /> <span className="btn-text">Add Product</span>
+            </button>
+          </div>
         </div>
       </nav>
-      <style>{`
-        .seller-appbar-pro {
-          background: linear-gradient(90deg, #1976d2 0%, #1565c0 100%);
-          color: #fff;
-        }
-      `}</style>
-      <style>{`
-        .seller-appbar-pro {
-          background: linear-gradient(90deg, #1976d2 0%, #1565c0 100%);
-          color: #fff;
-          padding: 0 0 0 0;
-          margin-bottom: 32px;
-          box-shadow: 0 4px 16px rgba(21,101,192,0.08);
-        }
-        .seller-appbar-content {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 18px 24px;
-        }
-        .seller-appbar-left {
-          display: flex;
-          align-items: center;
-        }
-        .seller-avatar-pro {
-          width: 54px;
-          height: 54px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid #fff;
-          margin-right: 16px;
-        }
-        .seller-info-pro {
-          display: flex;
-          flex-direction: column;
-        }
-        .seller-name-pro {
-          font-weight: 700;
-          font-size: 1.15rem;
-        }
-        .seller-email-pro {
-          font-size: 0.95rem;
-          color: #e3e3e3;
-        }
-        .seller-appbar-right {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-      `}</style>
 
-      {/* Stats Section - Mobile List View */}
-      <div className="container-fluid mb-3">
-        <div className="row g-3">
-          <div className="col-6 col-md-3">
-            <div className="card text-center bg-primary text-white h-100">
-              <div className="card-body">
-                <div className="display-6 fw-bold">{stats.totalProducts}</div>
-                <div className="card-title">Total Products</div>
-              </div>
+      {/* Modern Stats Cards with Glassmorphism */}
+      <div className="stats-grid-modern">
+        <div className={`stat-card-modern stat-card-gradient-blue ${animatedStats ? 'animate-in' : ''}`} style={{ animationDelay: '0ms' }}>
+          <div className="stat-card-bg"></div>
+          <div className="stat-icon-modern">
+            <FaBox />
+          </div>
+          <div className="stat-content-modern">
+            <div className="stat-value-modern">{stats.totalProducts}</div>
+            <div className="stat-label-modern">Total Products</div>
+            <div className="stat-trend">
+              <FaArrowUp className="trend-icon" /> <span>Active</span>
             </div>
           </div>
-          <div className="col-6 col-md-3">
-            <div className="card text-center bg-success text-white h-100">
-              <div className="card-body">
-                <div className="display-6 fw-bold">{stats.totalOrders}</div>
-                <div className="card-title">Total Orders</div>
-              </div>
+        </div>
+
+        <div className={`stat-card-modern stat-card-gradient-green ${animatedStats ? 'animate-in' : ''}`} style={{ animationDelay: '100ms' }}>
+          <div className="stat-card-bg"></div>
+          <div className="stat-icon-modern">
+            <FaShoppingCart />
+          </div>
+          <div className="stat-content-modern">
+            <div className="stat-value-modern">{stats.totalOrders}</div>
+            <div className="stat-label-modern">Total Orders</div>
+            <div className="stat-trend stat-trend-positive">
+              <FaArrowUp className="trend-icon" /> <span>Growing</span>
             </div>
           </div>
-          <div className="col-6 col-md-3">
-            <div className="card text-center bg-info text-white h-100">
-              <div className="card-body">
-                <div className="display-6 fw-bold">{stats.confirmedOrders}</div>
-                <div className="card-title">Confirmed Orders</div>
-              </div>
+        </div>
+
+        <div className={`stat-card-modern stat-card-gradient-purple ${animatedStats ? 'animate-in' : ''}`} style={{ animationDelay: '200ms' }}>
+          <div className="stat-card-bg"></div>
+          <div className="stat-icon-modern">
+            <FaCheckCircle />
+          </div>
+          <div className="stat-content-modern">
+            <div className="stat-value-modern">{stats.confirmedOrders}</div>
+            <div className="stat-label-modern">Completed</div>
+            <div className="stat-trend stat-trend-positive">
+              <FaStar className="trend-icon" /> <span>{stats.conversionRate}% rate</span>
             </div>
           </div>
-          <div className="col-6 col-md-3">
-            <div className="card text-center bg-warning text-dark h-100">
-              <div className="card-body">
-                <div className="display-6 fw-bold">${stats.totalSales}</div>
-                <div className="card-title">Total Sales</div>
-              </div>
+        </div>
+
+        <div className={`stat-card-modern stat-card-gradient-orange ${animatedStats ? 'animate-in' : ''}`} style={{ animationDelay: '300ms' }}>
+          <div className="stat-card-bg"></div>
+          <div className="stat-icon-modern">
+            <FaDollarSign />
+          </div>
+          <div className="stat-content-modern">
+            <div className="stat-value-modern">৳{stats.totalSales}</div>
+            <div className="stat-label-modern">Total Revenue</div>
+            <div className="stat-trend stat-trend-positive">
+              <FaArrowUp className="trend-icon" /> <span>Earning</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <ul className="nav nav-tabs mb-3 container-fluid">
-        <li className="nav-item">
-          <button className={`nav-link${activeTab === 'overview' ? ' active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-        </li>
-        <li className="nav-item">
-          <button className={`nav-link${activeTab === 'orders' ? ' active' : ''}`} onClick={() => setActiveTab('orders')}>Orders ({filteredOrders.length})</button>
-        </li>
-        <li className="nav-item">
-          <button className={`nav-link${activeTab === 'products' ? ' active' : ''}`} onClick={() => setActiveTab('products')}>Products ({products.length})</button>
-        </li>
-      </ul>
+      {/* Modern Tab Navigation */}
+      <div className="tabs-container-modern">
+        <button 
+          className={`tab-btn-modern ${activeTab === 'overview' ? 'active' : ''}`} 
+          onClick={() => setActiveTab('overview')}
+        >
+          <FaChartLine className="tab-icon" /> 
+          <span className="tab-label">Overview</span>
+        </button>
+        <button 
+          className={`tab-btn-modern ${activeTab === 'orders' ? 'active' : ''}`} 
+          onClick={() => setActiveTab('orders')}
+        >
+          <FaShoppingCart className="tab-icon" /> 
+          <span className="tab-label">Orders</span>
+          <span className="tab-badge">{orders.length}</span>
+        </button>
+        <button 
+          className={`tab-btn-modern ${activeTab === 'products' ? 'active' : ''}`} 
+          onClick={() => setActiveTab('products')}
+        >
+          <FaBox className="tab-icon" /> 
+          <span className="tab-label">Products</span>
+          <span className="tab-badge">{products.length}</span>
+        </button>
+      </div>
 
       {/* Overview Tab */}
       {activeTab === 'overview' && (
-        <div className="container-fluid tab-content">
-          <div className="row g-3">
-            <div className="col-6 col-md-3">
-              <div className="card text-center">
-                <div className="card-body">
-                  <div className="fw-bold">Pending Orders</div>
-                  <div className="display-6">{orders.filter((o) => o.status === 'pending').length}</div>
-                </div>
+        <div className="tab-content-modern">
+          {/* Quick Stats with Glassmorphism */}
+          <div className="quick-stats-modern">
+            <div className="glass-card-modern">
+              <div className="glass-card-icon pending-icon">
+                <FaShoppingCart />
+              </div>
+              <div className="glass-card-content">
+                <div className="glass-card-value">{stats.pendingOrders || 0}</div>
+                <div className="glass-card-label">Pending</div>
               </div>
             </div>
-            <div className="col-6 col-md-3">
-              <div className="card text-center">
-                <div className="card-body">
-                  <div className="fw-bold">Processing</div>
-                  <div className="display-6">{orders.filter((o) => o.status === 'processing').length}</div>
-                </div>
+            <div className="glass-card-modern">
+              <div className="glass-card-icon processing-icon">
+                <FaEdit />
+              </div>
+              <div className="glass-card-content">
+                <div className="glass-card-value">{orders.filter((o) => o.status === 'processing').length}</div>
+                <div className="glass-card-label">Processing</div>
               </div>
             </div>
-            <div className="col-6 col-md-3">
-              <div className="card text-center">
-                <div className="card-body">
-                  <div className="fw-bold">Delivered</div>
-                  <div className="display-6">{orders.filter((o) => o.status === 'delivered').length}</div>
-                </div>
+            <div className="glass-card-modern">
+              <div className="glass-card-icon delivered-icon">
+                <FaCheckCircle />
+              </div>
+              <div className="glass-card-content">
+                <div className="glass-card-value">{stats.deliveredOrders || 0}</div>
+                <div className="glass-card-label">Delivered</div>
               </div>
             </div>
-            <div className="col-6 col-md-3">
-              <div className="card text-center">
-                <div className="card-body">
-                  <div className="fw-bold">Avg Order Value</div>
-                  <div className="display-6">${orders.length > 0 ? (stats.totalSales / orders.length).toFixed(2) : 0}</div>
-                </div>
+            <div className="glass-card-modern">
+              <div className="glass-card-icon avg-icon">
+                <FaDollarSign />
               </div>
+              <div className="glass-card-content">
+                <div className="glass-card-value">৳{orders.length > 0 ? (parseFloat(stats.totalSales) / orders.length).toFixed(2) : '0.00'}</div>
+                <div className="glass-card-label">Avg Order</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Orders with Modern Design */}
+          <div className="section-card-modern">
+            <div className="section-header-modern">
+              <h3 className="section-title-modern">
+                <FaCalendar className="section-icon" />
+                Recent Orders
+              </h3>
+              <button 
+                className="btn-view-all-modern"
+                onClick={() => setActiveTab('orders')}
+              >
+                View All →
+              </button>
+            </div>
+            <div className="recent-orders-modern">
+              {orders.slice(0, 5).map((order, index) => (
+                <div key={order.id} className="recent-order-modern" style={{ animationDelay: `${index * 50}ms` }}>
+                  <div className="recent-order-left">
+                    <div className="order-avatar">
+                      <FaShoppingCart />
+                    </div>
+                    <div className="recent-order-info">
+                      <div className="recent-order-id">Order #{order.id.slice(0, 8)}</div>
+                      <div className="recent-order-date">
+                        {order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="recent-order-right">
+                    <div className="recent-order-total">৳{order.totalPrice?.toFixed(2) || '0.00'}</div>
+                    <span className={`status-badge-modern status-${order.status}`}>
+                      {order.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {orders.length === 0 && (
+                <div className="empty-state-modern">
+                  <FaShoppingCart className="empty-icon-modern" />
+                  <h4 className="empty-title">No Orders Yet</h4>
+                  <p className="empty-text">Orders will appear here once customers place them</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Orders Tab */}
+      {/* Orders Tab - Modern Design */}
       {activeTab === 'orders' && (
-        <div className="container-fluid tab-content">
-          <div className="row mb-3">
-            <div className="col-12 col-md-6">
-              <label className="form-label">Filter by Status:</label>
-              <select className="form-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                <option value="all">All Orders</option>
-                <option value="pending">Pending</option>
-                <option value="processing">Processing</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+        <div className="tab-content-modern">
+          <div className="filter-bar-modern">
+            <div className="filter-bar-left">
+              <FaShoppingCart className="filter-icon" />
+              <label className="filter-label-modern">Filter Orders:</label>
             </div>
+            <select 
+              className="filter-select-modern" 
+              value={filterStatus} 
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="all">All Orders</option>
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
           </div>
-          <div className="row g-3">
-            {filteredOrders.length === 0 ? (
-              <div className="col-12"><p className="text-center text-muted py-5">No orders found</p></div>
-            ) : (
-              filteredOrders.map((order) => (
-                <div key={order.id} className="col-12 col-md-6 col-lg-4">
-                  <div className="card h-100">
-                    <div className="card-header d-flex justify-content-between align-items-center">
-                      <div>
-                        <strong>Order ID:</strong> <code>{order.id.slice(0, 8)}</code><br/>
-                        <strong>Customer:</strong> {order.userName || 'Unknown'}<br/>
-                        <strong>Date:</strong> {new Date(order.createdAt?.seconds * 1000).toLocaleDateString()}
-                      </div>
-                      <span className={`badge status-badge status-${order.status}`}>{order.status}</span>
-                    </div>
-                    <div className="card-body">
-                      {order.items?.map((item, idx) => (
-                        <div key={idx} className="d-flex justify-content-between border-bottom py-1 small">
-                          <span>{item.name}</span>
-                          <span>×{item.quantity}</span>
-                          <span className="fw-bold">${(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
-                      <div className="fw-bold">Total: ${order.totalPrice?.toFixed(2) || 0}</div>
-                      <div className="d-flex flex-wrap gap-2">
-                        {order.status === 'pending' && (
-                          <button className="btn btn-warning btn-sm" onClick={() => handleUpdateOrderStatus(order.id, 'processing')}>Mark Processing</button>
-                        )}
-                        {order.status === 'processing' && (
-                          <button className="btn btn-success btn-sm" onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}>Mark Confirmed</button>
-                        )}
-                        {order.status === 'confirmed' && (
-                          <button className="btn btn-info btn-sm" onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}>Mark Delivered</button>
-                        )}
-                        {(order.status === 'pending' || order.status === 'processing') && (
-                          <button className="btn btn-danger btn-sm" onClick={() => handleUpdateOrderStatus(order.id, 'cancelled')}>Cancel Order</button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Products Tab */}
-      {activeTab === 'products' && (
-        <div className="container-fluid tab-content">
-          <div className="row g-3">
-            {products.length === 0 ? (
-              <div className="col-12 text-center text-muted py-5">
-                No products yet<br/>
-                <button className="btn btn-success mt-3" onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))}>Add Product</button>
+          <div className="orders-grid-modern">
+            {filteredOrders.length === 0 ? (
+              <div className="empty-state-modern empty-state-large">
+                <FaShoppingCart className="empty-icon-modern" />
+                <h4 className="empty-title">No Orders Found</h4>
+                <p className="empty-text">Orders will appear here once customers place them</p>
               </div>
             ) : (
-              products.map((product) => (
-                <div key={product.id} className="col-12 col-md-6 col-lg-4">
-                  <div className="card h-100">
-                    <div className="card-body d-flex flex-column align-items-start">
-                      <div className="d-flex align-items-center w-100 mb-2">
-                        <img
-                          src={product.imageUrl || product.Image || 'https://via.placeholder.com/60'}
-                          alt={product.name}
-                          className="rounded me-2"
-                          style={{ width: 60, height: 60, objectFit: 'cover' }}
-                        />
-                        <div className="flex-grow-1">
-                          <strong>{product.name}</strong>
-                          <p className="mb-1 small text-muted">{product.description?.slice(0, 100)}</p>
+              filteredOrders.map((order, index) => (
+                <div key={order.id} className="order-card-modern" style={{ animationDelay: `${index * 50}ms` }}>
+                  <div className="order-header-modern">
+                    <div className="order-header-left">
+                      <div className="order-id-modern">Order #{order.id.slice(0, 8)}</div>
+                      <div className="order-meta-modern">
+                        <span className="order-customer-modern">
+                          <FaUsers /> {order.userName || order.customerName || 'Unknown'}
+                        </span>
+                        <span className="order-date-modern">
+                          <FaCalendar /> {order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className={`status-badge-modern status-${order.status}`}>
+                      {order.status}
+                    </span>
+                  </div>
+
+                  <div className="order-items-list-modern">
+                    {order.items?.map((item, idx) => {
+                      const productImage = item.image ? item.image.split(',')[0]?.trim() : '';
+                      return (
+                        <div key={idx} className="order-item-row-modern">
+                          <div className="order-item-left-modern">
+                            {productImage ? (
+                              <img 
+                                src={productImage} 
+                                alt={item.name} 
+                                className="order-item-thumb-modern"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div className="order-item-thumb-placeholder-modern">
+                                <FaBox />
+                              </div>
+                            )}
+                            <div className="order-item-details-modern">
+                              <div className="order-item-name-modern">{item.name}</div>
+                              <div className="order-item-qty-modern">Quantity: {item.quantity}</div>
+                            </div>
+                          </div>
+                          <div className="order-item-price-modern">৳{(item.price * item.quantity).toFixed(2)}</div>
                         </div>
-                      </div>
-                      <div className="mb-2">
-                        <span className="fw-bold">${product.price}</span>
-                        {product.oldPrice && <span className="text-decoration-line-through text-muted ms-2">${product.oldPrice}</span>}
-                      </div>
-                      <div className="mb-2 small text-muted">
-                        <span>{product.category}</span> | <span>Stock: {product.stock || 0}</span>
-                      </div>
-                      {/* Edit button and inline edit form removed as requested */}
+                      );
+                    })}
+                  </div>
+
+                  <div className="order-footer-modern">
+                    <div className="order-total-section-modern">
+                      <div className="order-total-label-modern">Order Total:</div>
+                      <div className="order-total-value-modern">৳{order.totalPrice?.toFixed(2) || '0.00'}</div>
+                    </div>
+                    <div className="order-actions-modern">
+                      {order.status === 'pending' && (
+                        <button 
+                          className="btn-action-modern btn-warning-modern" 
+                          onClick={() => handleUpdateOrderStatus(order.id, 'processing')}
+                        >
+                          <FaEdit /> Mark Processing
+                        </button>
+                      )}
+                      {order.status === 'processing' && (
+                        <button 
+                          className="btn-action-modern btn-success-modern" 
+                          onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
+                        >
+                          <FaCheckCircle /> Mark Confirmed
+                        </button>
+                      )}
+                      {order.status === 'confirmed' && (
+                        <button 
+                          className="btn-action-modern btn-info-modern" 
+                          onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                        >
+                          <FaCheckCircle /> Mark Delivered
+                        </button>
+                      )}
+                      {(order.status === 'pending' || order.status === 'processing') && (
+                        <button 
+                          className="btn-action-modern btn-danger-modern" 
+                          onClick={() => handleUpdateOrderStatus(order.id, 'cancelled')}
+                        >
+                          <FaTrash /> Cancel
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -425,392 +498,214 @@ const SellerDashboardPage = ({ currentUser, onBack }) => {
         </div>
       )}
 
-      <style>{`
-        .seller-dashboard {
-          padding: 20px;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
+      {/* Products Tab - Modern Design */}
+      {activeTab === 'products' && (
+        <div className="tab-content-modern">
+          <div className="products-header-modern">
+            <h3 className="section-title-modern">
+              <FaBox className="section-icon" />
+              Your Products ({products.length})
+            </h3>
+            <button 
+              className="btn-add-product-modern-main"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))}
+            >
+              <FaPlus /> Add New Product
+            </button>
+          </div>
 
-        .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-          padding: 20px;
-          background: #f8f9fa;
-          border-radius: 8px;
-        }
+          {products.length === 0 ? (
+            <div className="empty-state-modern empty-state-large">
+              <FaBox className="empty-icon-modern" />
+              <h4 className="empty-title">No Products Yet</h4>
+              <p className="empty-text">Start adding your products to sell them online</p>
+              <button 
+                className="btn-primary-modern"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))}
+              >
+                <FaPlus /> Add Your First Product
+              </button>
+            </div>
+          ) : (
+            <div className="products-grid-modern">
+              {products.map((product, index) => {
+                const productImages = splitProductImages(product);
+                const mainImage = productImages.length > 0 ? productImages[0] : '';
+                const finalPrice = product.discount > 0
+                  ? product.price - (product.price * product.discount / 100)
+                  : product.price;
 
-        /* Stats Grid - Desktop */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
-          margin-bottom: 30px;
-        }
+                return (
+                  <div key={product.id} className="product-card-modern" style={{ animationDelay: `${index * 50}ms` }}>
+                    <div className="product-image-container-modern">
+                      {mainImage ? (
+                        <ShimmerImage
+                          src={mainImage}
+                          alt={product.name || 'Product'}
+                          wrapperClassName="product-image-shell-modern"
+                        />
+                      ) : (
+                        <div className="product-image-placeholder-modern">
+                          <FaBox className="placeholder-icon-modern" />
+                          <span>No Image</span>
+                        </div>
+                      )}
+                      {product.discount > 0 && (
+                        <span className="product-discount-badge-modern">-{Math.round(product.discount)}%</span>
+                      )}
+                      <div className="product-overlay-actions">
+                        <button 
+                          className="btn-view-product-modern"
+                          onClick={() => handleViewProduct(product)}
+                          title="View Product Details"
+                        >
+                          <FaEye />
+                        </button>
+                        <button 
+                          className="btn-edit-product-modern"
+                          onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))}
+                          title="Edit Product"
+                        >
+                          <FaEdit />
+                        </button>
+                      </div>
+                    </div>
 
-        .stat-card {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 20px;
-          border-radius: 8px;
-          text-align: center;
-        }
+                    <div className="product-info-section-modern">
+                      <h4 className="product-name-modern">{product.name || 'Unnamed Product'}</h4>
+                      
+                      {product.description && (
+                        <p className="product-description-modern">
+                          {product.description.substring(0, 80)}
+                          {product.description.length > 80 ? '...' : ''}
+                        </p>
+                      )}
 
-        .stat-value {
-          font-size: 2.5rem;
-          font-weight: bold;
-          margin-bottom: 10px;
-        }
+                      <div className="product-pricing-modern">
+                        {product.discount > 0 ? (
+                          <>
+                            <span className="product-final-price-modern">৳{Number(finalPrice).toFixed(2)}</span>
+                            <span className="product-original-price-modern">৳{Number(product.price).toFixed(2)}</span>
+                            <span className="discount-percent-modern">-{Math.round(product.discount)}%</span>
+                          </>
+                        ) : (
+                          <span className="product-final-price-modern">৳{Number(product.price).toFixed(2)}</span>
+                        )}
+                      </div>
 
-        .stat-label {
-          font-size: 0.9rem;
-          opacity: 0.9;
-        }
+                      <div className="product-meta-modern">
+                        <span className={`stock-badge-modern ${product.stock > 0 ? 'in-stock-modern' : 'out-of-stock-modern'}`}>
+                          {product.stock > 0 ? `✓ ${product.stock} in stock` : '✗ Out of stock'}
+                        </span>
+                        {product.category && (
+                          <span className="category-badge-modern">{product.category}</span>
+                        )}
+                      </div>
 
-        .tab-navigation {
-          display: flex;
-          gap: 10px;
-          margin-bottom: 20px;
-          border-bottom: 2px solid #e9ecef;
-        }
-
-        .tab-btn {
-          padding: 10px 20px;
-          border: none;
-          background: none;
-          cursor: pointer;
-          font-size: 1rem;
-          color: #6c757d;
-          border-bottom: 3px solid transparent;
-          transition: all 0.3s;
-        }
-
-        .tab-btn.active {
-          color: #667eea;
-          border-bottom-color: #667eea;
-        }
-
-        .tab-content {
-          animation: fadeIn 0.3s ease-in;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .quick-stats {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 15px;
-        }
-
-        .quick-stat {
-          display: flex;
-          justify-content: space-between;
-          padding: 15px;
-          background: #f8f9fa;
-          border-radius: 6px;
-        }
-
-        .quick-stat .label {
-          font-weight: 500;
-          color: #666;
-        }
-
-        .quick-stat .value {
-          font-weight: bold;
-          color: #667eea;
-          font-size: 1.2rem;
-        }
-
-        .filter-section {
-          margin-bottom: 20px;
-          display: flex;
-          gap: 10px;
-          align-items: center;
-        }
-
-        .orders-list, .products-list {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
-
-        .order-card {
-          border: 1px solid #e9ecef;
-          border-radius: 8px;
-          padding: 15px;
-          background: white;
-        }
-
-        .order-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-
-        .order-meta {
-          display: flex;
-          gap: 15px;
-          flex-wrap: wrap;
-          font-size: 0.9rem;
-        }
-
-        .order-meta code {
-          background: #f8f9fa;
-          padding: 2px 6px;
-          border-radius: 3px;
-          font-family: monospace;
-        }
-
-        .status-badge {
-          padding: 5px 12px;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: bold;
-          color: white;
-        }
-
-        .status-pending { background: #ffc107; color: black; }
-        .status-processing { background: #17a2b8; }
-        .status-confirmed { background: #28a745; }
-        .status-delivered { background: #6c757d; }
-        .status-cancelled { background: #dc3545; }
-
-        .order-items {
-          background: #f8f9fa;
-          padding: 10px;
-          border-radius: 6px;
-          margin-bottom: 15px;
-        }
-
-        .item-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 5px 0;
-          font-size: 0.9rem;
-        }
-
-        .order-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 10px;
-          border-top: 1px solid #e9ecef;
-          flex-wrap: wrap;
-          gap: 15px;
-        }
-
-        .total {
-          font-weight: bold;
-          font-size: 1.1rem;
-        }
-
-        .action-buttons {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .btn {
-          padding: 8px 12px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.9rem;
-        }
-
-        .btn-sm {
-          padding: 6px 10px;
-          font-size: 0.85rem;
-        }
-
-        .btn-warning {
-          background: #ffc107;
-          color: black;
-        }
-
-        .btn-success {
-          background: #28a745;
-          color: white;
-        }
-
-        .btn-info {
-          background: #17a2b8;
-          color: white;
-        }
-
-        .btn-danger {
-          background: #dc3545;
-          color: white;
-        }
-
-        .btn-secondary {
-          background: #6c757d;
-          color: white;
-        }
-
-        .product-row {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          padding: 15px;
-          border: 1px solid #e9ecef;
-          border-radius: 8px;
-          background: white;
-        }
-
-        .product-info {
-          display: flex;
-          gap: 15px;
-          flex: 1;
-          align-items: center;
-        }
-
-        .product-thumb {
-          width: 60px;
-          height: 60px;
-          object-fit: cover;
-          border-radius: 4px;
-        }
-
-        .product-details {
-          flex: 1;
-        }
-
-        .product-details strong {
-          display: block;
-          margin-bottom: 5px;
-        }
-
-        .product-details p {
-          margin: 0;
-          font-size: 0.85rem;
-          color: #666;
-        }
-
-        .product-pricing {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-        }
-
-        .product-pricing .price {
-          font-weight: bold;
-          font-size: 1.1rem;
-        }
-
-        .product-pricing .old-price {
-          text-decoration: line-through;
-          color: #999;
-        }
-
-        .product-stats {
-          display: flex;
-          gap: 10px;
-          font-size: 0.9rem;
-          color: #666;
-        }
-
-        .product-actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        .empty-state {
-          padding: 40px;
-          text-align: center;
-          color: #999;
-        }
-
-        .loading {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          min-height: 500px;
-          font-size: 1.2rem;
-          color: #666;
-        }
-
-        /* ========== MOBILE SPECIFIC STYLES ========== */
-        @media (max-width: 768px) {
-          .dashboard-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 15px;
-          }
-
-          .dashboard-header > div:last-child {
-            width: 100%;
-            flex-wrap: wrap;
-          }
-
-          /* Stats Mobile List View */
-          .stats-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-          }
-
-          .stat-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 18px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          }
-
-          .stat-card .stat-value {
-            font-size: 1.8rem;
-            margin: 0;
-            font-weight: 700;
-          }
-
-          .stat-card .stat-label {
-            font-size: 1rem;
-            opacity: 1;
-            font-weight: 500;
-            text-align: right;
-          }
-
-          .order-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .order-footer {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .product-row {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .product-actions {
-            width: 100%;
-            justify-content: flex-end;
-          }
-
-          .tab-navigation {
-            overflow-x: auto;
-            padding-bottom: 5px;
-          }
-
-          .tab-btn {
-            white-space: nowrap;
-            padding: 10px 15px;
-          }
-        }
-      `}</style>
+                      <div className="product-actions-modern">
+                        <button 
+                          className="btn-product-action-modern btn-edit-modern"
+                          onClick={() => window.dispatchEvent(new CustomEvent('open-catalog-admin'))}
+                        >
+                          <FaEdit /> Edit
+                        </button>
+                        <button 
+                          className="btn-product-action-modern btn-view-modern"
+                          onClick={() => handleViewProduct(product)}
+                        >
+                          <FaEye /> View
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+      {/* Product Detail Modal - Modern Design */}
+      {showProductModal && selectedProduct && (
+        <div className="product-modal-overlay-modern" onClick={() => setShowProductModal(false)}>
+          <div className="product-modal-content-modern" onClick={(e) => e.stopPropagation()}>
+            <button className="btn-close-modal-modern" onClick={() => setShowProductModal(false)}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <div className="product-modal-header-modern">
+              <div className="product-modal-images-modern">
+                {splitProductImages(selectedProduct).map((img, idx) => (
+                  <div key={idx} className="modal-image-wrapper">
+                    <img 
+                      src={img} 
+                      alt={`${selectedProduct.name} ${idx + 1}`} 
+                      className="modal-product-thumb-modern"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="product-modal-body-modern">
+              <h2 className="modal-product-title">{selectedProduct.name || 'Unnamed Product'}</h2>
+              <p className="modal-product-description">{selectedProduct.description}</p>
+              <div className="modal-product-stats">
+                <div className="modal-stat-row">
+                  <div className="modal-stat-item">
+                    <span className="modal-stat-icon">💰</span>
+                    <div className="modal-stat-info">
+                      <div className="modal-stat-label">Price</div>
+                      <div className="modal-stat-value">৳{Number(selectedProduct.price).toFixed(2)}</div>
+                    </div>
+                  </div>
+                  {selectedProduct.discount > 0 && (
+                    <div className="modal-stat-item highlight">
+                      <span className="modal-stat-icon">🏷️</span>
+                      <div className="modal-stat-info">
+                        <div className="modal-stat-label">Discount</div>
+                        <div className="modal-stat-value discount-highlight">{Math.round(selectedProduct.discount)}% OFF</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="modal-stat-row">
+                  <div className="modal-stat-item">
+                    <span className="modal-stat-icon">📦</span>
+                    <div className="modal-stat-info">
+                      <div className="modal-stat-label">Stock</div>
+                      <div className={`modal-stat-value ${selectedProduct.stock > 0 ? 'text-success' : 'text-danger'}`}>
+                        {selectedProduct.stock || 0} units
+                      </div>
+                    </div>
+                  </div>
+                  {selectedProduct.category && (
+                    <div className="modal-stat-item">
+                      <span className="modal-stat-icon">📂</span>
+                      <div className="modal-stat-info">
+                        <div className="modal-stat-label">Category</div>
+                        <div className="modal-stat-value">{selectedProduct.category}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {selectedProduct.rating && (
+                  <div className="modal-stat-row">
+                    <div className="modal-stat-item">
+                      <span className="modal-stat-icon">⭐</span>
+                      <div className="modal-stat-info">
+                        <div className="modal-stat-label">Rating</div>
+                        <div className="modal-stat-value">{selectedProduct.rating} / 5.0</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
