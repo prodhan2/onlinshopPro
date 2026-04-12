@@ -14,6 +14,12 @@ import PosterBuilder from '../posterbuilder/PosterBuilder';
 import PosterHistoryPage from '../posterbuilder/PosterHistoryPage';
 import CatalogAdminPage from '../catalogadmin/CatalogAdminPage';
 import AdminDashboardPage from './AdminDashboardPage';
+import AdminDashboardHome from './AdminDashboardHome';
+import AdminUserListPage from './AdminUserListPage';
+import AdminListPage from './AdminListPage';
+import AdminSellerOverviewPage from './AdminSellerOverviewPage';
+import AdminOrderStatusPage from './AdminOrderStatusPage';
+import AdminRoleManagementPage from './AdminRoleManagementPage';
 import SellerDashboardPage from './SellerDashboardPage';
 import WishlistPage from '../WishlistPage';
 import NotificationCenter from '../components/NotificationCenter';
@@ -184,6 +190,79 @@ export default function BStoreApp() {
         } />
         <Route path="/admin-dashboard" element={
           isAdmin ? (
+            <AdminDashboardHome currentUser={currentUser} />
+          ) : (
+            <section className="bstore-page">
+              <div className="bstore-card text-center">
+                <h2 className="h4">Admin access required</h2>
+                <p className="bstore-muted">You do not have permission to open Admin Dashboard.</p>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => navigate('/')}>Back to Home</button>
+              </div>
+            </section>
+          )
+        } />
+        <Route path="/admin-users" element={
+          isAdmin ? (
+            <AdminUserListPage currentUser={currentUser} />
+          ) : (
+            <section className="bstore-page">
+              <div className="bstore-card text-center">
+                <h2 className="h4">Admin access required</h2>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => navigate('/admin-dashboard')}>Back to Dashboard</button>
+              </div>
+            </section>
+          )
+        } />
+        <Route path="/admin-list" element={
+          isAdmin ? (
+            <AdminListPage currentUser={currentUser} />
+          ) : (
+            <section className="bstore-page">
+              <div className="bstore-card text-center">
+                <h2 className="h4">Admin access required</h2>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => navigate('/admin-dashboard')}>Back to Dashboard</button>
+              </div>
+            </section>
+          )
+        } />
+        <Route path="/admin-sellers" element={
+          isAdmin ? (
+            <AdminSellerOverviewPage currentUser={currentUser} />
+          ) : (
+            <section className="bstore-page">
+              <div className="bstore-card text-center">
+                <h2 className="h4">Admin access required</h2>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => navigate('/admin-dashboard')}>Back to Dashboard</button>
+              </div>
+            </section>
+          )
+        } />
+        <Route path="/admin-orders" element={
+          isAdmin ? (
+            <AdminOrderStatusPage currentUser={currentUser} />
+          ) : (
+            <section className="bstore-page">
+              <div className="bstore-card text-center">
+                <h2 className="h4">Admin access required</h2>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => navigate('/admin-dashboard')}>Back to Dashboard</button>
+              </div>
+            </section>
+          )
+        } />
+        <Route path="/admin-roles" element={
+          isAdmin ? (
+            <AdminRoleManagementPage currentUser={currentUser} />
+          ) : (
+            <section className="bstore-page">
+              <div className="bstore-card text-center">
+                <h2 className="h4">Admin access required</h2>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => navigate('/admin-dashboard')}>Back to Dashboard</button>
+              </div>
+            </section>
+          )
+        } />
+        <Route path="/admin-analytics" element={
+          isAdmin ? (
             <AdminDashboardPage
               currentUser={currentUser}
               onOpenCatalogManager={() => navigate('/catalog-admin')}
@@ -195,8 +274,7 @@ export default function BStoreApp() {
             <section className="bstore-page">
               <div className="bstore-card text-center">
                 <h2 className="h4">Admin access required</h2>
-                <p className="bstore-muted">You do not have permission to open Admin Dashboard.</p>
-                <button className="btn btn-outline-secondary" type="button" onClick={() => navigate('/')}>Back to Home</button>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => navigate('/admin-dashboard')}>Back to Dashboard</button>
               </div>
             </section>
           )

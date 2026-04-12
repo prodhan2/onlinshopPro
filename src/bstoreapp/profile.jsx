@@ -4,6 +4,21 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import dinLogo from './dinlogo.png';
 import jsPDF from 'jspdf';
+import {
+  FiUser,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiDroplet,
+  FiHome,
+  FiDownload,
+  FiLogOut,
+  FiArrowLeft,
+  FiEdit3,
+  FiCheck,
+  FiShield,
+  FiAward,
+} from 'react-icons/fi';
 
 
 export default function ProfilePage({ user, onBack, onLoggedOut }) {
@@ -268,261 +283,275 @@ export default function ProfilePage({ user, onBack, onLoggedOut }) {
   }
 
   return (
-    <section className="bstore-page bstore-page--narrow">
-      <div className="bstore-appbar mb-3">
-        <button
-          className="btn btn-outline-secondary"
-          type="button"
-          onClick={() => {
-            if (window.history.length > 1) {
-              window.history.back();
-            } else {
-              window.location.href = '/';
-            }
-          }}
-        >
-          Back
-        </button>
-        <h1 className="bstore-appbar__title mb-0">Profile</h1>
-        <div className="bstore-appbar__actions d-flex gap-2">
-          <button 
-            className="btn btn-outline-primary" 
-            type="button" 
-            onClick={handleDownloadPDF}
-            disabled={downloading || !user?.uid}
-            title="Download Profile Card"
+    <section className="profile-page">
+      {/* Hero Header */}
+      <div className="profile-header">
+        <div className="profile-header-bg">
+          <div className="profile-header-pattern"></div>
+        </div>
+        <div className="profile-header-content">
+          <button
+            className="profile-back-btn"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.href = '/';
+              }
+            }}
           >
-            {downloading ? (
-              <span className="spinner-border spinner-border-sm me-1" role="status" />
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-download me-1" viewBox="0 0 16 16">
-                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-              </svg>
-            )}
-            {downloading ? 'Generating...' : 'Download Card'}
+            <FiArrowLeft /> Back
           </button>
-          <button className="btn btn-outline-danger" type="button" onClick={handleLogout}>
-            Logout
-          </button>
+          <div className="profile-brand">
+            <img src={dinLogo} alt="Beautiful Dinajpur" className="profile-header-logo" />
+            <span>Beautiful Dinajpur</span>
+          </div>
         </div>
       </div>
 
-      <div className="bstore-card">
-        <div className="text-center mb-4">
-          <div className="member-avatar mx-auto mb-3">
-            {user?.photoURL ? <img src={user.photoURL} alt={user.displayName || 'User'} /> : (user?.displayName?.[0] || 'U')}
-          </div>
-          <h2 className="h4 mb-1">{formData.fullName || user?.displayName || 'Beautiful Dinajpur User'}</h2>
-          <p className="bstore-muted mb-0">{user?.email || 'No email available'}</p>
-        </div>
-
-        {/* Profile Card Preview */}
-        {user?.uid && (
-          <div className="mb-4">
-            <div className="card border-0 shadow-sm" style={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              borderRadius: '16px',
-              overflow: 'hidden'
-            }}>
-              <div className="card-body p-4">
-                {/* Header */}
-                <div className="text-center text-white mb-3">
-                  <h4 className="fw-bold mb-1">Beautiful Dinajpur</h4>
-                  <small className="opacity-75">Marketplace - Connecting Sellers & Customers</small>
-                </div>
-                
-                {/* Profile Info Card */}
-                <div className="bg-white rounded-4 p-4 mb-3">
-                  {/* Avatar */}
-                  <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" 
-                       style={{ width: '80px', height: '80px', fontSize: '32px', fontWeight: 'bold', background: '#667eea !important' }}>
-                    {(formData.fullName || user?.displayName || 'U').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
-                  </div>
-                  
-                  {/* Name & Email */}
-                  <h5 className="fw-bold text-center mb-1 text-dark">
-                    {formData.fullName || user?.displayName || 'Beautiful Dinajpur User'}
-                  </h5>
-                  <p className="text-center text-muted mb-3 small">{user?.email || 'No email available'}</p>
-                  
-                  <hr className="my-3" style={{ borderColor: '#667eea' }} />
-                  
-                  {/* Info Grid */}
-                  <div className="row g-2">
-                    <div className="col-6">
-                      <div className="bg-light rounded-3 p-2">
-                        <small className="text-muted d-block" style={{ fontSize: '11px' }}>Blood Group</small>
-                        <span className="fw-bold" style={{ fontSize: '13px' }}>{formData.bloodGroup || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="col-6">
-                      <div className="bg-light rounded-3 p-2">
-                        <small className="text-muted d-block" style={{ fontSize: '11px' }}>Phone</small>
-                        <span className="fw-bold" style={{ fontSize: '13px' }}>{formData.phone || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="col-6">
-                      <div className="bg-light rounded-3 p-2">
-                        <small className="text-muted d-block" style={{ fontSize: '11px' }}>Village</small>
-                        <span className="fw-bold" style={{ fontSize: '13px' }}>{formData.village || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="col-6">
-                      <div className="bg-light rounded-3 p-2">
-                        <small className="text-muted d-block" style={{ fontSize: '11px' }}>Upazilla</small>
-                        <span className="fw-bold" style={{ fontSize: '13px' }}>{formData.upazilla || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="col-12">
-                      <div className="bg-light rounded-3 p-2">
-                        <small className="text-muted d-block" style={{ fontSize: '11px' }}>Zilla</small>
-                        <span className="fw-bold" style={{ fontSize: '13px' }}>{formData.zilla || 'N/A'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Footer */}
-                <div className="text-center text-white">
-                  <small className="opacity-90 d-block">Beautiful Dinajpur Marketplace</small>
-                  <small className="opacity-75 d-block">Connecting Sellers & Customers</small>
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <button 
-                className="btn btn-primary btn-lg"
-                onClick={handleDownloadPDF}
-                disabled={downloading}
-              >
-                {downloading ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" />
-                    Generating PDF...
-                  </>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-file-earmark-pdf me-2" viewBox="0 0 16 16">
-                      <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2ZM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2Z"/>
-                      <path d="M4.603 14.087a.81.81 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.68 7.68 0 0 1 1.482-.645 19.697 19.697 0 0 0 1.062-2.227 7.269 7.269 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.188-.012.396-.047.614-.084.51-.27 1.134-.52 1.794a10.954 10.954 0 0 0 .98 1.686 5.753 5.753 0 0 0 1.334.012c.365-.017.72-.088 1.021-.226a.7.7 0 0 1 .602.077c.376.151.575.469.65.823.073.34.04.736-.046 1.136-.086.4-.27.803-.52 1.208a7.18 7.18 0 0 1-.43 1.295c.349.724.742 1.485 1.062 2.227.47.142.956.345 1.482.645.371.219.699.48.897.787.21.326.275.714.08 1.102a.81.81 0 0 1-.438.42c-.34.17-.74.196-1.102.08-.362-.117-.672-.36-.897-.787a7.68 7.68 0 0 1-1.482-.645 19.697 19.697 0 0 0-1.062-2.227 7.269 7.269 0 0 1-.43 1.295c-.086.4-.119.796-.046 1.136.075.354.274.672.65.823.192.077.4.12.602.077a.7.7 0 0 0 .477-.365c.088-.164.12-.356.127-.538.007-.188-.012-.396-.047-.614-.084-.51-.27-1.134-.52-1.794a10.954 10.954 0 0 0-.98-1.686 5.753 5.753 0 0 0-1.334-.012c-.365.017-.72.088-1.021.226a.7.7 0 0 0-.602-.077c-.376-.151-.575-.469-.65-.823-.073-.34-.04-.736.046-1.136.086-.4.27-.803.52-1.208.25-.405.434-.808.52-1.208.086-.4.119-.796.046-1.136a.7.7 0 0 0-.65-.823.7.7 0 0 0-.602.077c-.376.151-.575.469-.65.823-.073.34-.04.736.046 1.136.086.4.27.803.52 1.208.25.405.434.808.52 1.208Z"/>
-                    </svg>
-                    Download Profile Card as PDF
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
+      {/* Main Content */}
+      <div className="profile-content">
         {!user?.uid ? (
-          <div className="alert alert-warning mb-0">Please login to update profile information.</div>
+          <div className="profile-login-prompt">
+            <FiUser className="profile-login-icon" />
+            <h2>Login Required</h2>
+            <p>Please login to view and update your profile.</p>
+          </div>
         ) : loading ? (
-          <div className="bstore-loading-banner">
-            <div className="bstore-spinner-glow" />
-            <p className="bstore-muted mb-0">Loading profile...</p>
+          <div className="profile-loading">
+            <div className="profile-spinner"></div>
+            <p>Loading profile...</p>
           </div>
         ) : (
-          <form className="row g-3" onSubmit={handleSave}>
-            <div className="col-12">
-              <label className="form-label" htmlFor="profile-full-name">
-                Full name
-              </label>
-              <input
-                id="profile-full-name"
-                className="form-control"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                placeholder="Your full name"
-              />
-            </div>
+          <>
+            {/* Profile Card */}
+            <div className="profile-card">
+              {/* Avatar Section */}
+              <div className="profile-avatar-section">
+                <div className="profile-avatar-wrapper">
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt={user.displayName || 'User'} className="profile-avatar-img" />
+                  ) : (
+                    <span className="profile-avatar-text">
+                      {(formData.fullName || user?.displayName || 'U').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="profile-avatar-badge">
+                    <FiCheck />
+                  </div>
+                </div>
+                <h2 className="profile-name">{formData.fullName || user?.displayName || 'Beautiful Dinajpur User'}</h2>
+                <p className="profile-email">
+                  <FiMail /> {user?.email || 'No email available'}
+                </p>
 
-            <div className="col-12 col-md-6">
-              <label className="form-label" htmlFor="profile-blood">
-                Blood group
-              </label>
-              <input
-                id="profile-blood"
-                className="form-control"
-                name="bloodGroup"
-                value={formData.bloodGroup}
-                onChange={handleChange}
-                placeholder="Example: A+, B-, O+"
-              />
-            </div>
-
-            <div className="col-12 col-md-6">
-              <label className="form-label" htmlFor="profile-phone">
-                Phone number
-              </label>
-              <input
-                id="profile-phone"
-                className="form-control"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="01XXXXXXXXX"
-              />
-            </div>
-
-            <div className="col-12 col-md-4">
-              <label className="form-label" htmlFor="profile-village">
-                Village
-              </label>
-              <input
-                id="profile-village"
-                className="form-control"
-                name="village"
-                value={formData.village}
-                onChange={handleChange}
-                placeholder="Village"
-              />
-            </div>
-
-            <div className="col-12 col-md-4">
-              <label className="form-label" htmlFor="profile-upazilla">
-                Upazilla
-              </label>
-              <input
-                id="profile-upazilla"
-                className="form-control"
-                name="upazilla"
-                value={formData.upazilla}
-                onChange={handleChange}
-                placeholder="Upazilla"
-              />
-            </div>
-
-            <div className="col-12 col-md-4">
-              <label className="form-label" htmlFor="profile-zilla">
-                Zilla
-              </label>
-              <input
-                id="profile-zilla"
-                className="form-control"
-                name="zilla"
-                value={formData.zilla}
-                onChange={handleChange}
-                placeholder="Zilla"
-              />
-            </div>
-
-            {status ? (
-              <div className="col-12">
-                <div className="alert alert-info mb-0">{status}</div>
+                {/* Role Badge */}
+                <div className="profile-role-badges">
+                  <span className="profile-role-badge role-user">
+                    <FiUser /> User
+                  </span>
+                </div>
               </div>
-            ) : null}
 
-            {JSON.stringify(formData) !== JSON.stringify(initialData) && (
-              <div className="col-12 d-flex gap-2 justify-content-end">
-                <button className="btn btn-primary" type="submit" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save profile'}
+              {/* Stats Section */}
+              <div className="profile-stats">
+                <div className="profile-stat-item">
+                  <FiMapPin className="profile-stat-icon" />
+                  <span className="profile-stat-label">Location</span>
+                  <span className="profile-stat-value">{formData.village && formData.upazilla ? `${formData.village}, ${formData.upazilla}` : formData.zilla || 'Not set'}</span>
+                </div>
+                <div className="profile-stat-item">
+                  <FiPhone className="profile-stat-icon" />
+                  <span className="profile-stat-label">Phone</span>
+                  <span className="profile-stat-value">{formData.phone || 'Not set'}</span>
+                </div>
+                <div className="profile-stat-item">
+                  <FiDroplet className="profile-stat-icon" />
+                  <span className="profile-stat-label">Blood Group</span>
+                  <span className="profile-stat-value">{formData.bloodGroup || 'Not set'}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="profile-actions">
+                <button
+                  className="profile-action-btn profile-download-btn"
+                  onClick={handleDownloadPDF}
+                  disabled={downloading}
+                >
+                  <FiDownload />
+                  {downloading ? 'Generating PDF...' : 'Download Profile Card'}
+                </button>
+                <button
+                  className="profile-action-btn profile-logout-btn"
+                  onClick={async () => {
+                    await signOut(auth);
+                    onLoggedOut?.();
+                  }}
+                >
+                  <FiLogOut /> Logout
                 </button>
               </div>
+            </div>
+
+            {/* Status Message */}
+            {status && (
+              <div className={`profile-status ${status.includes('success') ? 'profile-status-success' : status.includes('failed') ? 'profile-status-error' : 'profile-status-info'}`}>
+                {status.includes('success') ? <FiCheck /> : status.includes('failed') ? <FiShield /> : <FiAward />}
+                {status}
+              </div>
             )}
-          </form>
+
+            {/* Edit Form */}
+            <div className="profile-edit-card">
+              <div className="profile-edit-header">
+                <FiEdit3 className="profile-edit-icon" />
+                <h3>Edit Profile</h3>
+              </div>
+
+              <form className="profile-form" onSubmit={async (e) => {
+                e.preventDefault();
+                if (!user?.uid) {
+                  setStatus('Please login first.');
+                  return;
+                }
+                setSaving(true);
+                setStatus('');
+                try {
+                  const profileRef = doc(db, 'profiles', user.uid);
+                  await setDoc(
+                    profileRef,
+                    {
+                      uid: user.uid,
+                      email: user.email || '',
+                      fullName: formData.fullName.trim(),
+                      bloodGroup: formData.bloodGroup.trim(),
+                      phone: formData.phone.trim(),
+                      village: formData.village.trim(),
+                      upazilla: formData.upazilla.trim(),
+                      zilla: formData.zilla.trim(),
+                      updatedAt: serverTimestamp(),
+                    },
+                    { merge: true },
+                  );
+                  if ((user.displayName || '') !== formData.fullName.trim()) {
+                    await updateProfile(user, { displayName: formData.fullName.trim() });
+                  }
+                  setInitialData({ ...formData });
+                  setStatus('Profile updated successfully.');
+                } catch {
+                  setStatus('Profile update failed. Please try again.');
+                } finally {
+                  setSaving(false);
+                }
+              }}>
+                <div className="profile-form-group">
+                  <label className="profile-form-label" htmlFor="profile-full-name">
+                    <FiUser /> Full Name
+                  </label>
+                  <input
+                    id="profile-full-name"
+                    className="profile-form-input"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                    placeholder="Your full name"
+                  />
+                </div>
+
+                <div className="profile-form-row">
+                  <div className="profile-form-group">
+                    <label className="profile-form-label" htmlFor="profile-blood">
+                      <FiDroplet /> Blood Group
+                    </label>
+                    <input
+                      id="profile-blood"
+                      className="profile-form-input"
+                      name="bloodGroup"
+                      value={formData.bloodGroup}
+                      onChange={(e) => setFormData(prev => ({ ...prev, bloodGroup: e.target.value }))}
+                      placeholder="A+, B-, O+"
+                    />
+                  </div>
+
+                  <div className="profile-form-group">
+                    <label className="profile-form-label" htmlFor="profile-phone">
+                      <FiPhone /> Phone Number
+                    </label>
+                    <input
+                      id="profile-phone"
+                      className="profile-form-input"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="01XXXXXXXXX"
+                    />
+                  </div>
+                </div>
+
+                <div className="profile-form-row">
+                  <div className="profile-form-group">
+                    <label className="profile-form-label" htmlFor="profile-village">
+                      <FiHome /> Village
+                    </label>
+                    <input
+                      id="profile-village"
+                      className="profile-form-input"
+                      name="village"
+                      value={formData.village}
+                      onChange={(e) => setFormData(prev => ({ ...prev, village: e.target.value }))}
+                      placeholder="Your village"
+                    />
+                  </div>
+
+                  <div className="profile-form-group">
+                    <label className="profile-form-label" htmlFor="profile-upazilla">
+                      <FiMapPin /> Upazilla
+                    </label>
+                    <input
+                      id="profile-upazilla"
+                      className="profile-form-input"
+                      name="upazilla"
+                      value={formData.upazilla}
+                      onChange={(e) => setFormData(prev => ({ ...prev, upazilla: e.target.value }))}
+                      placeholder="Your upazilla"
+                    />
+                  </div>
+
+                  <div className="profile-form-group">
+                    <label className="profile-form-label" htmlFor="profile-zilla">
+                      <FiMapPin /> Zilla
+                    </label>
+                    <input
+                      id="profile-zilla"
+                      className="profile-form-input"
+                      name="zilla"
+                      value={formData.zilla}
+                      onChange={(e) => setFormData(prev => ({ ...prev, zilla: e.target.value }))}
+                      placeholder="Your zilla"
+                    />
+                  </div>
+                </div>
+
+                {JSON.stringify(formData) !== JSON.stringify(initialData) && (
+                  <div className="profile-form-actions">
+                    <button className="profile-save-btn" type="submit" disabled={saving}>
+                      {saving ? (
+                        <>
+                          <span className="profile-save-spinner"></span>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <FiCheck /> Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </form>
+            </div>
+          </>
         )}
       </div>
     </section>
