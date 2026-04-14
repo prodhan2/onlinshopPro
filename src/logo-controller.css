@@ -1,0 +1,184 @@
+/* ========================================
+   LOGO CONTROLLER - Central Logo Management
+   ALL LOGOS: Fixed reasonable sizes
+   ======================================== */
+
+/* --- Homepage Logo --- */
+.pro-logo-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.pro-logo-img-large {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.pro-logo-img-xl {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+/* --- Logout Modal Logo (if used) --- */
+.logout-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+/* --- Footer Logo --- */
+.pro-footer-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+/* --- Admin Sidebar Logo --- */
+.admin-sidebar-logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+/* --- Catalog Admin Logo --- */
+.catalog-admin-logo img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+/* --- Catalog Popup Logo --- */
+.catalog-popup-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.catalog-popup-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* --- Confirm Dialog Logo --- */
+.confirm-dialog-logo {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-dialog-logo img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+/* ========================================
+   RESPONSIVE - Tablet (max-width: 1024px)
+   ======================================== */
+@media (max-width: 1024px) {
+  .pro-logo-img,
+  .pro-logo-img-large,
+  .pro-logo-img-xl {
+    width: 220px;
+    height: 220px;
+  }
+
+  .admin-sidebar-logo {
+    width: 220px;
+    height: 220px;
+  }
+
+  .catalog-popup-logo {
+    width: 220px;
+    height: 220px;
+  }
+
+  .confirm-dialog-logo img {
+   width: 220px;
+    height: 220px;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - Mobile (max-width: 640px)
+   ======================================== */
+@media (max-width: 640px) {
+  .pro-logo-img,
+  .pro-logo-img-large,
+  .pro-logo-img-xl {
+     width: 200px;
+    height: 200px;
+  }
+
+  .logout-logo {
+    width: 220px;
+    height: 220px;
+  }
+
+  .pro-footer-logo {
+    width: 220px;
+    height: 220px;
+  }
+
+  .admin-sidebar-logo {
+    width: 220px;
+    height: 220px;
+  }
+
+  .catalog-admin-logo img,
+  .catalog-popup-logo {
+    width: 220px;
+    height: 220px;
+  }
+
+  .confirm-dialog-logo img {
+    width: 220px;
+    height: 220px;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - Small Mobile (max-width: 375px)
+   ======================================== */
+@media (max-width: 375px) {
+  .pro-logo-img,
+  .pro-logo-img-large,
+  .pro-logo-img-xl {
+     width: 220px;
+    height: 220px;
+  }
+
+  .logout-logo {
+     width: 220px;
+    height: 220px;
+  }
+
+  .pro-footer-logo {
+     width: 220px;
+    height: 220px;
+  }
+
+  .admin-sidebar-logo {
+    width: 35px;
+    height: 35px;
+  }
+
+  .catalog-admin-logo img,
+  .catalog-popup-logo {
+     width: 220px;
+    height: 220px;
+  }
+
+  .confirm-dialog-logo img {
+    width: 220px;
+    height: 220px;
+  }
+}

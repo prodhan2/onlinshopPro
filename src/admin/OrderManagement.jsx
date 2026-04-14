@@ -20,6 +20,7 @@ import {
   FiChevronDown,
   FiChevronUp,
 } from 'react-icons/fi';
+import './admin.css';
 
 function toMillis(value) {
   if (!value) return 0;
@@ -164,44 +165,44 @@ export default function OrderManagementPage({ onBack, currentUser, isAdmin = fal
 
       {/* Main Content */}
       <div className="pro-order-content">
-        {/* Stats Cards */}
-        <div className="pro-order-stats">
-          <div className="pro-order-stat-card">
-            <div className="pro-order-stat-icon" style={{ background: '#eff6ff', color: '#1e40af' }}>
+        {/* Stats Buttons */}
+        <div className="pro-order-stats-buttons">
+          <button className="pro-order-stat-btn" onClick={() => setStatusFilter('all')}>
+            <div className="pro-order-stat-btn-icon" style={{ background: '#eff6ff', color: '#1e40af' }}>
               <FiShoppingBag />
             </div>
-            <div className="pro-order-stat-info">
-              <span className="pro-order-stat-value">{orderStats.total}</span>
-              <span className="pro-order-stat-label">Total Orders</span>
+            <div className="pro-order-stat-btn-info">
+              <span className="pro-order-stat-btn-value">{orderStats.total}</span>
+              <span className="pro-order-stat-btn-label">Total Orders</span>
             </div>
-          </div>
-          <div className="pro-order-stat-card">
-            <div className="pro-order-stat-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
+          </button>
+          <button className="pro-order-stat-btn" onClick={() => setStatusFilter('pending')}>
+            <div className="pro-order-stat-btn-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
               <FiClock />
             </div>
-            <div className="pro-order-stat-info">
-              <span className="pro-order-stat-value">{orderStats.pending}</span>
-              <span className="pro-order-stat-label">Pending</span>
+            <div className="pro-order-stat-btn-info">
+              <span className="pro-order-stat-btn-value">{orderStats.pending}</span>
+              <span className="pro-order-stat-btn-label">Pending</span>
             </div>
-          </div>
-          <div className="pro-order-stat-card">
-            <div className="pro-order-stat-icon" style={{ background: '#dbeafe', color: '#2563eb' }}>
+          </button>
+          <button className="pro-order-stat-btn" onClick={() => setStatusFilter('processing')}>
+            <div className="pro-order-stat-btn-icon" style={{ background: '#dbeafe', color: '#2563eb' }}>
               <FiTruck />
             </div>
-            <div className="pro-order-stat-info">
-              <span className="pro-order-stat-value">{orderStats.processing}</span>
-              <span className="pro-order-stat-label">Processing</span>
+            <div className="pro-order-stat-btn-info">
+              <span className="pro-order-stat-btn-value">{orderStats.processing}</span>
+              <span className="pro-order-stat-btn-label">Processing</span>
             </div>
-          </div>
-          <div className="pro-order-stat-card">
-            <div className="pro-order-stat-icon" style={{ background: '#d1fae5', color: '#059669' }}>
+          </button>
+          <button className="pro-order-stat-btn" onClick={() => setStatusFilter('confirmed')}>
+            <div className="pro-order-stat-btn-icon" style={{ background: '#d1fae5', color: '#059669' }}>
               <FiDollarSign />
             </div>
-            <div className="pro-order-stat-info">
-              <span className="pro-order-stat-value">৳{orderStats.totalRevenue.toLocaleString()}</span>
-              <span className="pro-order-stat-label">Revenue</span>
+            <div className="pro-order-stat-btn-info">
+              <span className="pro-order-stat-btn-value">৳{orderStats.totalRevenue.toLocaleString()}</span>
+              <span className="pro-order-stat-btn-label">Revenue</span>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Status Filter Tabs */}

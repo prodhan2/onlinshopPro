@@ -1,26 +1,45 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { convertToWebP } from '../bstoreapp/webpConverter';
+import ConfirmDialog from '../components/ConfirmDialog';
+import logo from '../bstoreapp/assets/images/logo.png';
 import './catalogAdmin.css';
 
 const BEEIMG_API_KEY = '58c9ff18b1cf549b8fa5b946d5860f27';
 
 async function uploadImageToBeeImg(file) {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('apikey', BEEIMG_API_KEY);
+  try {
+    // Log original file info
+    console.log(`Uploading: ${file.name} (${(file.size / 1024).toFixed(1)}KB, ${file.type || 'unknown type'})`);
+    
+    // Accept ALL file types - let browser and server handle validation
+    // Convert to WebP before upload for smaller file size (supports all image types)
+    const webpFile = await convertToWebP(file, 0.85, 1920);
+    
+    console.log(`Converted to: ${webpFile.name} (${(webpFile.size / 1024).toFixed(1)}KB)`);
+    
+    const formData = new FormData();
+    formData.append('file', webpFile);
+    formData.append('apikey', BEEIMG_API_KEY);
 
-  const response = await fetch('https://beeimg.com/api/upload/file/json/', {
-    method: 'POST',
-    body: formData,
-  });
+    const response = await fetch('https://beeimg.com/api/upload/file/json/', {
+      method: 'POST',
+      body: formData,
+    });
 
-  const data = await response.json();
-  const fileData = data?.files;
-  if (!fileData?.url) {
-    throw new Error(fileData?.status || 'Image upload failed');
+    const data = await response.json();
+    const fileData = data?.files;
+    if (!fileData?.url) {
+      throw new Error(fileData?.status || 'Image upload failed');
+    }
+    
+    console.log(`Upload successful: ${fileData.url}`);
+    return fileData.url;
+  } catch (error) {
+    console.error('Upload error:', error);
+    throw error;
   }
-  return fileData.url;
 }
 
 function toDataUrl(file) {
@@ -83,6 +102,10 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   const [activeSection, setActiveSection] = useState('categories');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
+  const [mobileView, setMobileView] = useState('form'); // 'form' or 'list' for mobile toggle
+  const [successPopup, setSuccessPopup] = useState({ show: false, message: '', type: 'success' });
+  const [confirmDelete, setConfirmDelete] = useState({ show: false, type: '', item: null });
+  const [zoomedImage, setZoomedImage] = useState(null); // For image zoom modal
 
   const [categoryForm, setCategoryForm] = useState({ id: '', name: '', iconUrl: '' });
   const [categoryFile, setCategoryFile] = useState(null);
@@ -118,6 +141,17 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   const [bannerFile, setBannerFile] = useState(null);
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Success/Error popup helpers
+  const showSuccess = (message) => {
+    setSuccessPopup({ show: true, message, type: 'success' });
+    setTimeout(() => setSuccessPopup({ show: false, message: '', type: 'success' }), 3000);
+  };
+
+  const showError = (message) => {
+    setSuccessPopup({ show: true, message, type: 'error' });
+    setTimeout(() => setSuccessPopup({ show: false, message: '', type: 'error' }), 4000);
+  };
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => String(a.name).localeCompare(String(b.name))),
@@ -395,7 +429,14 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
       setCategoryForm({ id: generateNextCategoryId(next), name: '', iconUrl: '' });
       setCategoryFile(null);
       setEditingCategoryDocId(null);
-      setStatus(editingCategoryDocId ? 'Category updated successfully.' : 'Category added successfully.');
+      
+      const message = editingCategoryDocId ? 'Category updated successfully! ✅' : 'Category added successfully! ✅';
+      showSuccess(message);
+      setStatus(message);
+    } catch (error) {
+      console.error('Category error:', error);
+      showError('Failed to save category. Please try again.');
+      setStatus('Failed to save category.');
     } finally {
       setBusy(false);
     }
@@ -524,7 +565,14 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
       setImageOrder([]);
       setCoverImageId('');
       setEditingProductDocId(null);
-      setStatus(editingProductDocId ? 'Product updated successfully.' : 'Product added successfully.');
+      
+      const message = editingProductDocId ? 'Product updated successfully! ✅' : 'Product added successfully! ✅';
+      showSuccess(message);
+      setStatus(message);
+    } catch (error) {
+      console.error('Product error:', error);
+      showError('Failed to save product. Please try again.');
+      setStatus('Failed to save product.');
     } finally {
       setBusy(false);
     }
@@ -542,18 +590,25 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   };
 
   const handleDeleteCategory = (item) => {
-    if (!window.confirm(`Delete category '${item.name}'?`)) return;
-    deleteDoc(doc(db, 'categories', item._docId)).catch(() => {
-      setStatus('Failed to delete category from Firebase.');
+    showDeleteConfirmation('category', item, async () => {
+      try {
+        await deleteDoc(doc(db, 'categories', item._docId));
+        const next = categories.filter((x) => x._docId !== item._docId);
+        setCategories(next);
+        if (editingCategoryDocId === item._docId) {
+          setEditingCategoryDocId(null);
+          setCategoryForm({ id: generateNextCategoryId(next), name: '', iconUrl: '' });
+          setCategoryFile(null);
+        }
+        const message = `Category "${item.name}" deleted successfully! 🗑️`;
+        showSuccess(message);
+        setStatus(message);
+      } catch (error) {
+        console.error('Delete category error:', error);
+        showError('Failed to delete category. Please try again.');
+        setStatus('Failed to delete category from Firebase.');
+      }
     });
-    const next = categories.filter((x) => x._docId !== item._docId);
-    setCategories(next);
-    if (editingCategoryDocId === item._docId) {
-      setEditingCategoryDocId(null);
-      setCategoryForm({ id: generateNextCategoryId(next), name: '', iconUrl: '' });
-      setCategoryFile(null);
-    }
-    setStatus('Category deleted.');
   };
 
   const handleEditProduct = (item) => {
@@ -577,31 +632,38 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   };
 
   const handleDeleteProduct = (item) => {
-    if (!window.confirm(`Delete product '${item.name}'?`)) return;
-    deleteDoc(doc(db, 'products', item._docId)).catch(() => {
-      setStatus('Failed to delete product from Firebase.');
+    showDeleteConfirmation('product', item, async () => {
+      try {
+        await deleteDoc(doc(db, 'products', item._docId));
+        const next = products.filter((x) => x._docId !== item._docId);
+        setProducts(next);
+        if (editingProductDocId === item._docId) {
+          setEditingProductDocId(null);
+          setProductForm({
+            id: generateNextProductId(next),
+            name: '',
+            description: '',
+            image: '',
+            price: '',
+            discount: '0',
+            stock: '0',
+            categoryId: '',
+            rating: '0',
+            available: true,
+          });
+          setProductFile([]);
+          setImageOrder([]);
+          setCoverImageId('');
+        }
+        const message = `Product "${item.name}" deleted successfully! 🗑️`;
+        showSuccess(message);
+        setStatus(message);
+      } catch (error) {
+        console.error('Delete product error:', error);
+        showError('Failed to delete product. Please try again.');
+        setStatus('Failed to delete product from Firebase.');
+      }
     });
-    const next = products.filter((x) => x._docId !== item._docId);
-    setProducts(next);
-    if (editingProductDocId === item._docId) {
-      setEditingProductDocId(null);
-      setProductForm({
-        id: generateNextProductId(next),
-        name: '',
-        description: '',
-        image: '',
-        price: '',
-        discount: '0',
-        stock: '0',
-        categoryId: '',
-        rating: '0',
-        available: true,
-      });
-      setImageOrder([]);
-      setCoverImageId('');
-      setProductFile([]);
-    }
-    setStatus('Product deleted.');
   };
 
   const savePaymentDetail = async (e) => {
@@ -651,8 +713,13 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
         COD_instructions: '',
         bKash_instructions: '',
       });
-      setStatus(editingPaymentDocId ? 'Payment details updated.' : 'Payment details added.');
-    } catch {
+      
+      const message = editingPaymentDocId ? 'Payment details updated successfully! ✅' : 'Payment details added successfully! ✅';
+      showSuccess(message);
+      setStatus(message);
+    } catch (error) {
+      console.error('Payment error:', error);
+      showError('Failed to save payment details. Please try again.');
       setStatus('Failed to save payment details.');
     } finally {
       setBusy(false);
@@ -672,23 +739,30 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   };
 
   const handleDeletePayment = (item) => {
-    if (!window.confirm(`Delete payment details for '${item.area_name}'?`)) return;
-    deleteDoc(doc(db, 'paymentDetails', item._docId)).catch(() => {
-      setStatus('Failed to delete payment details from Firebase.');
+    showDeleteConfirmation('payment', item, async () => {
+      try {
+        await deleteDoc(doc(db, 'paymentDetails', item._docId));
+        const next = paymentDetails.filter((x) => x._docId !== item._docId);
+        setPaymentDetails(next);
+        if (editingPaymentDocId === item._docId) {
+          setEditingPaymentDocId(null);
+          setPaymentForm({
+            area_name: '',
+            charge: '',
+            contact_number: '',
+            COD_instructions: '',
+            bKash_instructions: '',
+          });
+        }
+        const message = `Payment details for "${item.area_name}" deleted successfully! 🗑️`;
+        showSuccess(message);
+        setStatus(message);
+      } catch (error) {
+        console.error('Delete payment error:', error);
+        showError('Failed to delete payment details. Please try again.');
+        setStatus('Failed to delete payment details from Firebase.');
+      }
     });
-    const next = paymentDetails.filter((x) => x._docId !== item._docId);
-    setPaymentDetails(next);
-    if (editingPaymentDocId === item._docId) {
-      setEditingPaymentDocId(null);
-      setPaymentForm({
-        area_name: '',
-        charge: '',
-        contact_number: '',
-        COD_instructions: '',
-        bKash_instructions: '',
-      });
-    }
-    setStatus('Payment details deleted.');
   };
 
   const saveBanner = async (e) => {
@@ -743,8 +817,13 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
       setEditingBannerDocId(null);
       setBannerForm({ no: generateNextBannerNo(next), imageUrl: '', description: '', show: true });
       setBannerFile(null);
-      setStatus(editingBannerDocId ? 'Banner updated.' : 'Banner added.');
-    } catch {
+      
+      const message = editingBannerDocId ? 'Banner updated successfully! ✅' : 'Banner added successfully! ✅';
+      showSuccess(message);
+      setStatus(message);
+    } catch (error) {
+      console.error('Banner error:', error);
+      showError('Failed to save banner. Please try again.');
       setStatus('Failed to save banner.');
     } finally {
       setBusy(false);
@@ -764,18 +843,29 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   };
 
   const handleDeleteBanner = (item) => {
-    if (!window.confirm(`Delete banner No. ${item.no}?`)) return;
-    deleteDoc(doc(db, 'banners', item._docId)).catch(() => {
-      setStatus('Failed to delete banner from Firebase.');
+    showDeleteConfirmation('banner', item, async () => {
+      try {
+        await deleteDoc(doc(db, 'banners', item._docId));
+        const next = banners.filter((x) => x._docId !== item._docId);
+        setBanners(next);
+        if (editingBannerDocId === item._docId) {
+          setEditingBannerDocId(null);
+          setBannerForm({ no: generateNextBannerNo(next), imageUrl: '', description: '', show: true });
+          setBannerFile(null);
+        }
+        const message = `Banner No. ${item.no} deleted successfully! 🗑️`;
+        showSuccess(message);
+        setStatus(message);
+      } catch (error) {
+        console.error('Delete banner error:', error);
+        showError('Failed to delete banner. Please try again.');
+        setStatus('Failed to delete banner from Firebase.');
+      }
     });
-    const next = banners.filter((x) => x._docId !== item._docId);
-    setBanners(next);
-    if (editingBannerDocId === item._docId) {
-      setEditingBannerDocId(null);
-      setBannerForm({ no: generateNextBannerNo(next), imageUrl: '', description: '', show: true });
-      setBannerFile(null);
-    }
-    setStatus('Banner deleted.');
+  };
+
+  const showDeleteConfirmation = (type, item, onConfirm) => {
+    setConfirmDelete({ show: true, type, item, onConfirm });
   };
 
   return (
@@ -891,7 +981,18 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
 
       <div className="catalog-admin-grid">
         {activeSection === 'categories' ? (
-        <form className="catalog-card" onSubmit={addCategory}>
+        <>
+          {/* Mobile View Toggle Button */}
+          <button
+            type="button"
+            className="btn mobile-view-toggle"
+            onClick={() => setMobileView(mobileView === 'form' ? 'list' : 'form')}
+          >
+            {mobileView === 'form' ? '📋 Show Categories List' : '✏️ Show Add Category Form'}
+          </button>
+
+          {/* Form Section */}
+          <form className={`catalog-card catalog-form-section ${mobileView === 'list' ? 'hidden-mobile' : ''}`} onSubmit={addCategory}>
           <h3>{editingCategoryDocId ? 'Edit Category' : 'Add Category'}</h3>
           <label>
             Category ID
@@ -946,14 +1047,25 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
               </button>
             ) : null}
           </div>
+        </form>
 
-          <div className="list-wrap">
+          {/* List Section */}
+          <div className={`catalog-card catalog-list-section ${mobileView === 'form' ? 'hidden-mobile' : ''}`}>
             <h4>Categories ({categories.length})</h4>
             <ul>
               {sortedCategories.map((item) => (
                 <li key={item._docId}>
                   <div className="item-main">
-                    {item.createdBy?.photoURL ? <img src={item.createdBy.photoURL} alt={item.createdBy.displayName || 'Creator'} /> : null}
+                    {item.iconUrl ? (
+                      <img 
+                        src={item.iconUrl} 
+                        alt={item.name || 'Category'} 
+                        className="catalog-item-image catalog-item-image--category"
+                        onClick={() => setZoomedImage(item.iconUrl)}
+                      />
+                    ) : item.createdBy?.photoURL ? (
+                      <img src={item.createdBy.photoURL} alt={item.createdBy.displayName || 'Creator'} />
+                    ) : null}
                     <span>{item.name}</span>
                     <code>{item.id}</code>
                     <small>By: {item.createdBy?.displayName || 'Unknown'}</small>
@@ -966,11 +1078,22 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
               ))}
             </ul>
           </div>
-        </form>
+        </>
         ) : null}
 
         {activeSection === 'products' ? (
-        <form className="catalog-card" onSubmit={addProduct}>
+        <>
+          {/* Mobile View Toggle Button */}
+          <button
+            type="button"
+            className="btn mobile-view-toggle"
+            onClick={() => setMobileView(mobileView === 'form' ? 'list' : 'form')}
+          >
+            {mobileView === 'form' ? '📋 Show Products List' : '✏️ Show Add Product Form'}
+          </button>
+
+          {/* Form Section */}
+          <form className={`catalog-card catalog-form-section ${mobileView === 'list' ? 'hidden-mobile' : ''}`} onSubmit={addProduct}>
           <h3>{editingProductDocId ? 'Edit Product' : 'Add Product'}</h3>
           <div className="two-col">
             <label>
@@ -1182,33 +1305,45 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
               </button>
             ) : null}
           </div>
+        </form>
 
-          <div className="list-wrap">
+          {/* List Section */}
+          <div className={`catalog-card catalog-list-section ${mobileView === 'form' ? 'hidden-mobile' : ''}`}>
             <h4>Products ({products.length})</h4>
             <ul>
-              {[...products].reverse().map((item) => (
-                <li key={item._docId}>
-                  <div className="item-main">
-                    {splitImages(item.image)[0] ? (
-                      <img src={splitImages(item.image)[0]} alt={item.name || 'Product'} />
-                    ) : item.createdBy?.photoURL ? (
-                      <img src={item.createdBy.photoURL} alt={item.createdBy.displayName || 'Creator'} />
-                    ) : null}
-                    <span>{item.name}</span>
-                    <code>{item.price}</code>
-                    <small>
-                      By: {item.createdBy?.displayName || 'Unknown'} | Images: {splitImages(item.image).length}
-                    </small>
-                  </div>
-                  <div className="item-actions">
-                    <button type="button" className="btn mini" onClick={() => handleEditProduct(item)}>Edit</button>
-                    <button type="button" className="btn mini danger" onClick={() => handleDeleteProduct(item)}>Delete</button>
-                  </div>
-                </li>
-              ))}
+              {[...products].reverse().map((item) => {
+                const firstImage = splitImages(item.image)[0];
+                return (
+                  <li key={item._docId}>
+                    <div className="item-main">
+                      {firstImage ? (
+                        <img 
+                          src={firstImage} 
+                          alt={item.name || 'Product'} 
+                          className="catalog-item-image catalog-item-image--product"
+                          onClick={() => setZoomedImage(firstImage)}
+                        />
+                      ) : item.createdBy?.photoURL ? (
+                        <img src={item.createdBy.photoURL} alt={item.createdBy.displayName || 'Creator'} />
+                      ) : null}
+                      <div className="item-info">
+                        <span>{item.name}</span>
+                        <code>৳{item.price}</code>
+                        <small>
+                          By: {item.createdBy?.displayName || 'Unknown'} | Images: {splitImages(item.image).length}
+                        </small>
+                      </div>
+                    </div>
+                    <div className="item-actions">
+                      <button type="button" className="btn mini" onClick={() => handleEditProduct(item)}>Edit</button>
+                      <button type="button" className="btn mini danger" onClick={() => handleDeleteProduct(item)}>Delete</button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
-        </form>
+        </>
         ) : null}
 
         {activeSection === 'payment' ? (
@@ -1416,6 +1551,65 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
         </form>
         ) : null}
       </div>
+
+      {/* Success/Error Popup */}
+      {successPopup.show && (
+        <div className="catalog-popup-overlay" onClick={() => setSuccessPopup({ show: false, message: '', type: 'success' })}>
+          <div className={`catalog-popup ${successPopup.type}`} onClick={e => e.stopPropagation()}>
+            <div className="catalog-popup-logo">
+              <img src={logo} alt="Logo" />
+            </div>
+            <div className="catalog-popup-icon">
+              {successPopup.type === 'success' ? '✅' : '❌'}
+            </div>
+            <p className="catalog-popup-message">{successPopup.message}</p>
+            <button 
+              className="catalog-popup-close"
+              onClick={() => setSuccessPopup({ show: false, message: '', type: successPopup.type })}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDelete.show}
+        title={`Delete ${confirmDelete.type === 'category' ? 'Category' : confirmDelete.type === 'product' ? 'Product' : confirmDelete.type === 'payment' ? 'Payment Details' : 'Banner'}?`}
+        message={confirmDelete.item ? `Are you sure you want to delete "${confirmDelete.item.name || confirmDelete.item.area_name || `No. ${confirmDelete.item.no}`}"? This action cannot be undone.` : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        logo={logo}
+        onConfirm={async () => {
+          if (confirmDelete.onConfirm) {
+            await confirmDelete.onConfirm();
+          }
+          setConfirmDelete({ show: false, type: '', item: null, onConfirm: null });
+        }}
+        onCancel={() => setConfirmDelete({ show: false, type: '', item: null, onConfirm: null })}
+      />
+
+      {/* Image Zoom Modal */}
+      {zoomedImage && (
+        <div className="catalog-image-zoom-overlay" onClick={() => setZoomedImage(null)}>
+          <div className="catalog-image-zoom-container" onClick={e => e.stopPropagation()}>
+            <button 
+              className="catalog-zoom-close"
+              onClick={() => setZoomedImage(null)}
+            >
+              ×
+            </button>
+            <img 
+              src={zoomedImage} 
+              alt="Zoomed view" 
+              className="catalog-zoom-image"
+              onClick={() => setZoomedImage(null)}
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import { clearCart } from './cardManager';
-import { getPaymentInstructions } from './shippingrules';
-import { getCartItemTotal, parseNumber } from './models';
+import { clearCart } from '../bstoreapp/cardManager';
+import { getPaymentInstructions } from '../bstoreapp/shippingrules';
+import { getCartItemTotal, parseNumber } from '../bstoreapp/models';
+import './user.css';
 
 const PAYMENT_METHODS = [
   { id: 'bkash', label: 'bKash' },

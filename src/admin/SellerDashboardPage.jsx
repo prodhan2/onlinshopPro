@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { FaBox, FaShoppingCart, FaDollarSign, FaCheckCircle, FaEdit, FaTrash, FaPlus, FaChartLine, FaUsers, FaEye, FaArrowUp, FaArrowDown, FaStar, FaCalendar } from 'react-icons/fa';
-import ShimmerImage from './ShimmerImage';
-import { splitProductImages } from './models';
-import './bstoreapp.css';
+import ShimmerImage from '../bstoreapp/ShimmerImage';
+import { splitProductImages } from '../bstoreapp/models';
+import './admin.css';
 
 const SellerDashboardPage = ({ currentUser }) => {
   const [products, setProducts] = useState([]);

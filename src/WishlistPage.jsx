@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getWishlist, removeFromWishlist, clearWishlist } from './utils/wishlistUtils.js';
+import ConfirmDialog from './components/ConfirmDialog';
 import './styles.css';
 
 const WishlistPage = ({ onBack, currentUser }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmRemove, setConfirmRemove] = useState(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,17 +27,13 @@ const WishlistPage = ({ onBack, currentUser }) => {
   };
 
   const handleRemoveItem = async (productId) => {
-    if (window.confirm('Remove from wishlist?')) {
-      await removeFromWishlist(productId);
-      setItems((prevItems) => prevItems.filter((item) => item.id !== productId));
-    }
+    await removeFromWishlist(productId);
+    setItems((prevItems) => prevItems.filter((item) => item.id !== productId));
   };
 
   const handleClearWishlist = async () => {
-    if (window.confirm('Clear entire wishlist?')) {
-      await clearWishlist();
-      setItems([]);
-    }
+    await clearWishlist();
+    setItems([]);
   };
 
   const handleBack = () => {
@@ -134,7 +133,7 @@ const WishlistPage = ({ onBack, currentUser }) => {
             {items.length > 0 && (
               <button
                 className="btn btn-outline-danger btn-sm"
-                onClick={handleClearWishlist}
+                onClick={() => setConfirmClear(true)}
               >
                 Clear All
               </button>
@@ -185,7 +184,7 @@ const WishlistPage = ({ onBack, currentUser }) => {
                       )}
                       <button
                         className="wishlist-remove-btn"
-                        onClick={() => handleRemoveItem(item.id)}
+                        onClick={() => setConfirmRemove(item)}
                         title="Remove from wishlist"
                       >
                         ✕
@@ -325,6 +324,37 @@ const WishlistPage = ({ onBack, currentUser }) => {
           }
         }
       `}</style>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmDialog
+        isOpen={confirmClear === true}
+        title="Clear Wishlist?"
+        message="Are you sure you want to remove all items from your wishlist? This action cannot be undone."
+        confirmText="Clear All"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={async () => {
+          await handleClearWishlist();
+          setConfirmClear(false);
+        }}
+        onCancel={() => setConfirmClear(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmRemove !== null}
+        title="Remove from Wishlist?"
+        message={confirmRemove ? `Are you sure you want to remove "${confirmRemove.name}" from your wishlist?` : ''}
+        confirmText="Remove"
+        cancelText="Cancel"
+        type="warning"
+        onConfirm={async () => {
+          if (confirmRemove) {
+            await handleRemoveItem(confirmRemove.id);
+            setConfirmRemove(null);
+          }
+        }}
+        onCancel={() => setConfirmRemove(null)}
+      />
     </main>
   );
 };

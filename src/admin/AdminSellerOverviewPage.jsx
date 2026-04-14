@@ -16,6 +16,7 @@ import {
   FiTrendingUp,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
+import './admin.css';
 
 const CACHE_KEYS = {
   profiles: 'admin-sellers-profiles',

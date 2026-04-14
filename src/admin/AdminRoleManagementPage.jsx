@@ -15,6 +15,7 @@ import {
   FiUsers,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
+import './admin.css';
 
 const CACHE_KEY = 'admin-roles-page-data';
 const ROLE_OPTIONS = ['user', 'seller', 'subadmin', 'admin'];

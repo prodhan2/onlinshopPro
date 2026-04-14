@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import './admin.css';
 
 // Simple localStorage cache helpers
 const ADMIN_CACHE_KEYS = {
@@ -23,8 +26,6 @@ function writeCache(key, value) {
     // Ignore
   }
 }
-import { collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 
 const ROLE_OPTIONS = ['user', 'seller', 'subadmin', 'admin'];
 
@@ -512,6 +513,7 @@ export default function AdminDashboardPage({
             <strong>{roleCounts.admin}</strong>
           </div>
           <div className="bstore-admin-stat">
+            <span>Total Subadmins</span>
             <span>Total Subadmins</span>
             <strong>{roleCounts.subadmin}</strong>
           </div>

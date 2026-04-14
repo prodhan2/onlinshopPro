@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { getNotifications, deleteNotification, markNotificationAsRead, clearAllNotifications } from '../utils/notificationUtils.js';
+import ConfirmDialog from './ConfirmDialog';
 import '../styles.css';
 
 const NotificationCenter = ({ userId, isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -39,14 +42,12 @@ const NotificationCenter = ({ userId, isOpen, onClose }) => {
   };
 
   const handleDeleteNotification = async (notifId) => {
-    if (userId) {
-      await deleteNotification(userId, notifId);
-      setNotifications((prev) => prev.filter((n) => n.id !== notifId));
-    }
+    await deleteNotification(userId, notifId);
+    setNotifications((prev) => prev.filter((n) => n.id !== notifId));
   };
 
   const handleClearAll = async () => {
-    if (userId && window.confirm('Clear all notifications?')) {
+    if (userId) {
       await clearAllNotifications(userId);
       setNotifications([]);
       setUnreadCount(0);
@@ -116,7 +117,7 @@ const NotificationCenter = ({ userId, isOpen, onClose }) => {
                     )}
                     <button
                       className="btn-action btn-action-delete"
-                      onClick={() => handleDeleteNotification(notif.id)}
+                      onClick={() => setConfirmDelete(notif.id)}
                       title="Delete"
                     >
                       ✕
@@ -130,7 +131,7 @@ const NotificationCenter = ({ userId, isOpen, onClose }) => {
 
         {notifications.length > 0 && (
           <div className="notification-footer">
-            <button className="btn btn-sm btn-outline-secondary w-100" onClick={handleClearAll}>
+            <button className="btn btn-sm btn-outline-secondary w-100" onClick={() => setConfirmClearAll(true)}>
               Clear All
             </button>
           </div>
@@ -367,6 +368,37 @@ const NotificationCenter = ({ userId, isOpen, onClose }) => {
           }
         }
       `}</style>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmDialog
+        isOpen={confirmClearAll === true}
+        title="Clear All Notifications?"
+        message="Are you sure you want to remove all notifications? This action cannot be undone."
+        confirmText="Clear All"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={async () => {
+          await handleClearAll();
+          setConfirmClearAll(false);
+        }}
+        onCancel={() => setConfirmClearAll(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDelete !== null}
+        title="Delete Notification?"
+        message="Are you sure you want to delete this notification?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="warning"
+        onConfirm={async () => {
+          if (confirmDelete) {
+            await handleDeleteNotification(confirmDelete);
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </>
   );
 };

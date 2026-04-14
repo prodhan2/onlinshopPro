@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaUserCircle, FaSearch, FaBars, FaStore, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
-import { FiShoppingCart, FiLogIn, FiUser, FiHeart, FiGrid, FiChevronRight, FiArrowRight } from 'react-icons/fi';
+import { FaBars, FaStore } from 'react-icons/fa';
+import { FiShoppingCart, FiUser, FiHeart, FiChevronRight, FiArrowRight, FiLogIn, FiGrid } from 'react-icons/fi';
 import { collection, getDocs } from 'firebase/firestore';
-import { addToCart, getCartState, loadCart, subscribeCart } from './cardManager';
-import { createBannerItem, createCategory, createProduct, getDiscountedUnitPrice } from './models';
+import { addToCart, getCartState, isProductInCart, loadCart, subscribeCart } from '../bstoreapp/cardManager';
+import { createBannerItem, createCategory, createProduct, getDiscountedUnitPrice } from '../bstoreapp/models';
+import { autoPreloadProducts } from '../bstoreapp/imageCache';
 import { db } from '../firebase';
-import ShimmerImage from './ShimmerImage';
-import dinLogo from './dinlogo.png';
+import ShimmerImage from '../bstoreapp/ShimmerImage';
+import logo from '../bstoreapp/assets/images/logo.png';
+import StoreHeader from './header/header';
+import './user.css';
 
 const CACHE_KEYS = {
   categories: 'bstoreapp-categories',
@@ -46,7 +49,7 @@ function ProductCardSkeleton({ index }) {
   );
 }
 
-export default function CategoryPage({
+export default function HomePage({
   currentUser,
   onOpenCart,
   onOpenProduct,
@@ -79,13 +82,37 @@ export default function CategoryPage({
   const [cartState, setCartState] = useState(() => loadCart());
   const [clickedProductId, setClickedProductId] = useState(null);
   const [activeBanner, setActiveBanner] = useState(0);
+  const [isDesktopSlider, setIsDesktopSlider] = useState(() => window.innerWidth >= 1024);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCartHot, setIsCartHot] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupType, setPopupType] = useState('success'); // 'success' or 'warning'
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('pro-dark-mode');
+    return saved === 'true';
+  });
+  const [featuredSlideIndex, setFeaturedSlideIndex] = useState(0);
+  const featuredSlideRef = useRef(null);
+  const [featuredVisibleCount, setFeaturedVisibleCount] = useState(() => {
+    if (window.innerWidth <= 480) return 1;
+    if (window.innerWidth <= 768) return 2;
+    if (window.innerWidth <= 1024) return 3;
+    return 4;
+  });
 
   const clickAnimationTimerRef = useRef(null);
   const cartHotTimerRef = useRef(null);
+  const featuredSlideTimerRef = useRef(null);
   const cartButtonRef = useRef(null);
+  const popupTimerRef = useRef(null);
+
+  function toggleDarkMode() {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('pro-dark-mode', newMode);
+  }
 
   function handleProductCardClick(productId) {
     setClickedProductId(productId);
@@ -137,11 +164,39 @@ export default function CategoryPage({
       return;
     }
 
+    // Check if product is already in cart
+    if (isProductInCart(product)) {
+      // Show popup notification
+      setPopupMessage('This product is already in your cart!');
+      setPopupType('warning');
+      setShowPopup(true);
+      
+      if (popupTimerRef.current) {
+        clearTimeout(popupTimerRef.current);
+      }
+      popupTimerRef.current = setTimeout(() => {
+        setShowPopup(false);
+      }, 3000);
+      return;
+    }
+
     const added = addToCart(product, 1);
     if (!added) {
       onOpenLogin?.();
       return;
     }
+
+    // Show success popup
+    setPopupMessage(`${product.name} added to cart!`);
+    setPopupType('success');
+    setShowPopup(true);
+    
+    if (popupTimerRef.current) {
+      clearTimeout(popupTimerRef.current);
+    }
+    popupTimerRef.current = setTimeout(() => {
+      setShowPopup(false);
+    }, 3000);
 
     triggerFlyToCart(event.currentTarget);
     activateCartHotState();
@@ -152,6 +207,19 @@ export default function CategoryPage({
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktopSlider(window.innerWidth >= 1024);
+      setActiveBanner(0);
+      if (window.innerWidth <= 480) setFeaturedVisibleCount(1);
+      else if (window.innerWidth <= 768) setFeaturedVisibleCount(2);
+      else if (window.innerWidth <= 1024) setFeaturedVisibleCount(3);
+      else setFeaturedVisibleCount(4);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -171,8 +239,26 @@ export default function CategoryPage({
     return () => {
       if (clickAnimationTimerRef.current) window.clearTimeout(clickAnimationTimerRef.current);
       if (cartHotTimerRef.current) window.clearTimeout(cartHotTimerRef.current);
+      if (popupTimerRef.current) window.clearTimeout(popupTimerRef.current);
+      if (featuredSlideTimerRef.current) window.clearInterval(featuredSlideTimerRef.current);
     };
   }, []);
+
+  // Featured deals auto-slide
+  useEffect(() => {
+    if (featuredProducts.length <= featuredVisibleCount) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setFeaturedSlideIndex(previous => {
+        const maxIndex = Math.max(0, featuredProducts.length - featuredVisibleCount);
+        return previous >= maxIndex ? 0 : previous + 1;
+      });
+    }, 3000);
+
+    return () => window.clearInterval(timer);
+  }, [featuredProducts.length, featuredVisibleCount]);
 
   useEffect(() => {
     let ignore = false;
@@ -216,6 +302,9 @@ export default function CategoryPage({
         writeCache(CACHE_KEYS.products, nextProducts);
         writeCache(CACHE_KEYS.banners, nextBanners);
         localStorage.setItem(CACHE_KEYS.notice, nextNotice);
+
+        // Auto-preload all product images in background for fast loading
+        autoPreloadProducts(nextProducts);
       } catch (error) {
         console.error("Error loading store data:", error);
         if (!ignore) {
@@ -267,7 +356,7 @@ export default function CategoryPage({
     : 'Guest';
 
   return (
-    <div className="pro-store-page">
+    <div className={`pro-store-page ${darkMode ? 'pro-dark-mode' : ''}`}>
       {/* Inline Styles */}
       <style>{`
         .pro-fly-to-cart-dot {
@@ -286,122 +375,46 @@ export default function CategoryPage({
         }
       `}</style>
 
+      {/* ===== POPUP NOTIFICATION ===== */}
+      {showPopup && (
+        <div className={`pro-popup-notification ${popupType}`}>
+          <div className="pro-popup-content">
+            <div className="pro-popup-logo pro-popup-logo-large">
+              <img src={logo} alt="Logo" />
+            </div>
+            <div className="pro-popup-body">
+              <div className={`pro-popup-icon ${popupType}`}>
+                {popupType === 'success' ? '✓' : '⚠'}
+              </div>
+              <p className="pro-popup-message">{popupMessage}</p>
+            </div>
+            <button 
+              className="pro-popup-close"
+              onClick={() => setShowPopup(false)}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ===== TOP NAVIGATION ===== */}
-      <header className="pro-store-header">
-        {/* Top Info Bar */}
-        <div className="pro-top-bar">
-          <div className="pro-top-bar-content">
-            <div className="pro-top-bar-left">
-              <span className="pro-top-bar-item">
-                <FaMapMarkerAlt /> Dinajpur, Bangladesh
-              </span>
-              <span className="pro-top-bar-divider">|</span>
-              <span className="pro-top-bar-item">
-                <FaPhone /> 24/7 Support
-              </span>
-            </div>
-            <div className="pro-top-bar-right">
-              {currentUser ? (
-                <>
-                  <button className="pro-top-btn" onClick={onOpenOrders}>
-                    <FiGrid size={14} /> Orders
-                  </button>
-                  {canOpenCatalogManager && (
-                    <button className="pro-top-btn" onClick={onOpenCatalogManager}>
-                      <FiGrid size={14} /> Catalog
-                    </button>
-                  )}
-                  {canOpenAdminDashboard && (
-                    <button className="pro-top-btn" onClick={onOpenAdminDashboard}>
-                      <FiGrid size={14} /> Admin
-                    </button>
-                  )}
-                </>
-              ) : (
-                <span className="pro-top-bar-item">Free delivery on orders over ৳500</span>
-              )}
-            </div>
-          </div>
-        </div>
+      <StoreHeader
+        logo={logo}
+        currentUser={currentUser}
+        onOpenLogin={onOpenLogin}
+        onOpenProfile={onOpenProfile}
+        onOpenCart={onOpenCart}
+        onOpenMenu={() => setIsDrawerOpen(true)}
+        cartState={cartState}
+        cartButtonRef={cartButtonRef}
+        isCartHot={isCartHot}
+        toggleDarkMode={toggleDarkMode}
+        darkMode={darkMode}
+        onSearch={() => {}}
+      />
 
-        {/* Main Header */}
-        <div className="pro-main-header">
-          <div className="pro-main-header-content">
-            {/* Logo */}
-            <div className="pro-logo">
-              <img src={dinLogo} alt="Beautiful Dinajpur" className="pro-logo-img" />
-              <div className="pro-logo-text">
-                <span className="pro-logo-title">Beautiful Dinajpur</span>
-                <span className="pro-logo-subtitle">Online Marketplace</span>
-              </div>
-            </div>
-
-            {/* Search Bar */}
-            <div className={`pro-search-container ${searchFocused ? 'pro-search-focused' : ''}`}>
-              <div className="pro-search-wrapper">
-                <FaSearch className="pro-search-icon" />
-                <input
-                  type="text"
-                  className="pro-search-input"
-                  placeholder="Search for products..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setSearchFocused(false)}
-                />
-                {searchQuery && (
-                  <button
-                    className="pro-search-clear"
-                    onClick={() => setSearchQuery('')}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Header Actions */}
-            <div className="pro-header-actions">
-              {currentUser ? (
-                <>
-                  <button className="pro-icon-btn" onClick={onOpenWishlist} title="Wishlist">
-                    <FiHeart />
-                  </button>
-                  <button
-                    ref={cartButtonRef}
-                    className={`pro-icon-btn pro-cart-btn ${isCartHot || cartState.totalItems > 0 ? 'pro-cart-hot' : ''}`}
-                    onClick={onOpenCart}
-                    title="Cart"
-                  >
-                    <FiShoppingCart />
-                    {cartState.totalItems > 0 && (
-                      <span className="pro-cart-badge">{cartState.totalItems}</span>
-                    )}
-                  </button>
-                  <button className="pro-user-btn" onClick={onOpenProfile} title="Profile">
-                    {currentUser.photoURL ? (
-                      <img src={currentUser.photoURL} alt="Profile" className="pro-user-avatar" />
-                    ) : (
-                      <FaUserCircle size={28} />
-                    )}
-                  </button>
-                </>
-              ) : (
-                <button className="pro-login-btn" onClick={onOpenLogin}>
-                  <FiLogIn /> Login
-                </button>
-              )}
-              <button
-                className="pro-menu-btn"
-                onClick={() => setIsDrawerOpen(true)}
-              >
-                <FaBars />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Category Navigation Bar */}
+      {/* Category Navigation Bar */}
         {categories.length > 0 && (
           <div className="pro-category-nav">
             <div className="pro-category-nav-content">
@@ -428,7 +441,6 @@ export default function CategoryPage({
             </div>
           </div>
         )}
-      </header>
 
       {/* ===== SIDE DRAWER ===== */}
       <div
@@ -513,10 +525,13 @@ export default function CategoryPage({
           <section className="pro-hero-slider pro-hero-full-width">
             <div
               className="pro-hero-track"
-              style={{ transform: `translateX(-${activeBanner * 100}%)` }}
+              style={{ transform: `translateX(-${activeBanner * (isDesktopSlider ? 50 : 100)}%)` }}
             >
               {banners.map((banner, index) => (
-                <div className="pro-hero-slide" key={`${banner.imageUrl}-${index}`}>
+                <div
+                  className={`pro-hero-slide ${isDesktopSlider ? 'pro-hero-slide-desktop' : 'pro-hero-slide-mobile'}`}
+                  key={`${banner.imageUrl}-${index}`}
+                >
                   <div className="pro-hero-card pro-hero-auto-cover">
                     <ShimmerImage
                       src={banner.imageUrl}
@@ -547,45 +562,6 @@ export default function CategoryPage({
           </section>
         )}
 
-        {/* Features Bar */}
-        <section className="pro-features-bar">
-          <div className="pro-feature-card">
-            <div className="pro-feature-icon pro-feature-icon--primary">
-              <FaStore />
-            </div>
-            <div className="pro-feature-text">
-              <strong>Wide Selection</strong>
-              <span>Quality Products</span>
-            </div>
-          </div>
-          <div className="pro-feature-card">
-            <div className="pro-feature-icon pro-feature-icon--success">
-              <FiGrid />
-            </div>
-            <div className="pro-feature-text">
-              <strong>Fast Delivery</strong>
-              <span>Across Dinajpur</span>
-            </div>
-          </div>
-          <div className="pro-feature-card">
-            <div className="pro-feature-icon pro-feature-icon--warning">
-              <FaPhone />
-            </div>
-            <div className="pro-feature-text">
-              <strong>24/7 Support</strong>
-              <span>Always Available</span>
-            </div>
-          </div>
-          <div className="pro-feature-card">
-            <div className="pro-feature-icon pro-feature-icon--info">
-              <FiUser />
-            </div>
-            <div className="pro-feature-text">
-              <strong>Secure Shopping</strong>
-              <span>Trusted Platform</span>
-            </div>
-          </div>
-        </section>
 
         {/* Categories Section */}
         {categories.length > 0 && (
@@ -620,52 +596,92 @@ export default function CategoryPage({
           </section>
         )}
 
-        {/* Featured Products (Discounted) */}
+        {/* Featured Products (Discounted) - Slider */}
         {featuredProducts.length > 0 && selectedCategory === 'all' && !searchQuery && (
           <section className="pro-section pro-featured-section">
             <div className="pro-section-header">
               <h2 className="pro-section-title">
                 🔥 Featured Deals
               </h2>
-              <button className="pro-section-link" onClick={() => {}}>
-                View All <FiChevronRight />
+            </div>
+            <div className="pro-featured-slider-wrapper">
+              <button 
+                className="pro-slider-arrow pro-slider-arrow-left"
+                onClick={() => {
+                  setFeaturedSlideIndex(prev => {
+                    const maxIndex = Math.max(0, featuredProducts.length - featuredVisibleCount);
+                    return prev <= 0 ? maxIndex : prev - 1;
+                  });
+                }}
+              >
+                ‹
+              </button>
+              
+              <div 
+                className="pro-products-scroll pro-featured-slider" 
+                ref={featuredSlideRef}
+                style={{ transform: `translateX(-${featuredSlideIndex * (100 / featuredVisibleCount)}%)` }}
+              >
+                {featuredProducts.map(product => {
+                  const mainImage = product.image ? product.image.split(',')[0]?.trim() : '';
+                  return (
+                    <article
+                      key={`featured-${product.id}`}
+                      className={`pro-product-card ${clickedProductId === product.id ? 'pro-product-card-clicked' : ''}`}
+                      onClick={() => {
+                        handleProductCardClick(product.id);
+                        onOpenProduct(product);
+                      }}
+                    >
+                      <div className="pro-product-image">
+                        {product.discount > 0 && (
+                          <span className="pro-discount-badge">-{product.discount}%</span>
+                        )}
+                        <ShimmerImage
+                          src={mainImage}
+                          alt={product.name}
+                          wrapperClassName="pro-product-image-shell"
+                        />
+                      </div>
+                      <div className="pro-product-info">
+                        <h3 className="pro-product-name">{product.name}</h3>
+                        <div className="pro-product-prices">
+                          {product.discount > 0 && (
+                            <span className="pro-product-old-price">৳{Number(product.price).toFixed(2)}</span>
+                          )}
+                          <span className="pro-product-price">৳{getDiscountedUnitPrice(product).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+              
+              <button 
+                className="pro-slider-arrow pro-slider-arrow-right"
+                onClick={() => {
+                  setFeaturedSlideIndex(prev => {
+                    const maxIndex = Math.max(0, featuredProducts.length - featuredVisibleCount);
+                    return prev >= maxIndex ? 0 : prev + 1;
+                  });
+                }}
+              >
+                ›
               </button>
             </div>
-            <div className="pro-products-scroll">
-              {featuredProducts.map(product => {
-                const mainImage = product.image ? product.image.split(',')[0]?.trim() : '';
-                return (
-                  <article
-                    key={`featured-${product.id}`}
-                    className={`pro-product-card ${clickedProductId === product.id ? 'pro-product-card-clicked' : ''}`}
-                    onClick={() => {
-                      handleProductCardClick(product.id);
-                      onOpenProduct(product);
-                    }}
-                  >
-                    <div className="pro-product-image">
-                      {product.discount > 0 && (
-                        <span className="pro-discount-badge">-{product.discount}%</span>
-                      )}
-                      <ShimmerImage
-                        src={mainImage}
-                        alt={product.name}
-                        wrapperClassName="pro-product-image-shell"
-                      />
-                    </div>
-                    <div className="pro-product-info">
-                      <h3 className="pro-product-name">{product.name}</h3>
-                      <div className="pro-product-prices">
-                        {product.discount > 0 && (
-                          <span className="pro-product-old-price">৳{Number(product.price).toFixed(2)}</span>
-                        )}
-                        <span className="pro-product-price">৳{getDiscountedUnitPrice(product).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+            
+            {/* Slider Dots */}
+            {featuredProducts.length > featuredVisibleCount && (
+              <div className="pro-slider-dots">
+                {Array.from({ length: featuredProducts.length - featuredVisibleCount + 1 }).map((_, index) => (
+                  <button
+                    key={index}
+                    className={`pro-slider-dot ${index === featuredSlideIndex ? 'pro-slider-dot-active' : ''}`}
+                    onClick={() => setFeaturedSlideIndex(index)}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -725,10 +741,10 @@ export default function CategoryPage({
                       </div>
                       {currentUser && (
                         <button
-                          className="pro-add-to-cart-btn"
+                          className={`pro-add-to-cart-btn ${isProductInCart(product) ? 'pro-in-cart' : ''}`}
                           onClick={(e) => handleAddToCart(product, e)}
                         >
-                          <FiShoppingCart /> Add to Cart
+                          <FiShoppingCart /> {isProductInCart(product) ? 'In Cart' : 'Add to Cart'}
                         </button>
                       )}
                     </div>
@@ -748,28 +764,6 @@ export default function CategoryPage({
           )}
         </section>
       </main>
-
-      {/* ===== FOOTER ===== */}
-      <footer className="pro-store-footer">
-        <div className="pro-footer-content">
-          <div className="pro-footer-brand">
-            <img src={dinLogo} alt="Beautiful Dinajpur" className="pro-footer-logo" />
-            <div>
-              <h4>Beautiful Dinajpur</h4>
-              <p>Connecting Sellers & Customers</p>
-            </div>
-          </div>
-          <div className="pro-footer-links">
-            <button onClick={() => onOpenLogin?.()}>Login</button>
-            <button onClick={() => onOpenProfile?.()}>Profile</button>
-            <button onClick={() => onOpenCart?.()}>Cart</button>
-            {currentUser && <button onClick={() => onOpenOrders?.()}>Orders</button>}
-          </div>
-          <div className="pro-footer-bottom">
-            <p>© 2026 Beautiful Dinajpur. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

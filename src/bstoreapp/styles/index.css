@@ -1,0 +1,11 @@
+/* ===== BSTORE APP STYLES INDEX ===== */
+/* Import this file to include all bstoreapp styles */
+
+@import './base.css';
+@import './homepage.css';
+@import './login.css';
+@import './orders.css';
+@import './cart.css';
+@import './product-detail.css';
+@import './profile.css';
+@import './admin.css';
