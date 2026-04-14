@@ -93,18 +93,9 @@ export default function HomePage({
     const saved = localStorage.getItem('pro-dark-mode');
     return saved === 'true';
   });
-  const [featuredSlideIndex, setFeaturedSlideIndex] = useState(0);
-  const featuredSlideRef = useRef(null);
-  const [featuredVisibleCount, setFeaturedVisibleCount] = useState(() => {
-    if (window.innerWidth <= 480) return 1;
-    if (window.innerWidth <= 768) return 2;
-    if (window.innerWidth <= 1024) return 3;
-    return 4;
-  });
 
   const clickAnimationTimerRef = useRef(null);
   const cartHotTimerRef = useRef(null);
-  const featuredSlideTimerRef = useRef(null);
   const cartButtonRef = useRef(null);
   const popupTimerRef = useRef(null);
 
@@ -213,10 +204,6 @@ export default function HomePage({
     const handleResize = () => {
       setIsDesktopSlider(window.innerWidth >= 1024);
       setActiveBanner(0);
-      if (window.innerWidth <= 480) setFeaturedVisibleCount(1);
-      else if (window.innerWidth <= 768) setFeaturedVisibleCount(2);
-      else if (window.innerWidth <= 1024) setFeaturedVisibleCount(3);
-      else setFeaturedVisibleCount(4);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -240,25 +227,8 @@ export default function HomePage({
       if (clickAnimationTimerRef.current) window.clearTimeout(clickAnimationTimerRef.current);
       if (cartHotTimerRef.current) window.clearTimeout(cartHotTimerRef.current);
       if (popupTimerRef.current) window.clearTimeout(popupTimerRef.current);
-      if (featuredSlideTimerRef.current) window.clearInterval(featuredSlideTimerRef.current);
     };
   }, []);
-
-  // Featured deals auto-slide
-  useEffect(() => {
-    if (featuredProducts.length <= featuredVisibleCount) {
-      return undefined;
-    }
-
-    const timer = window.setInterval(() => {
-      setFeaturedSlideIndex(previous => {
-        const maxIndex = Math.max(0, featuredProducts.length - featuredVisibleCount);
-        return previous >= maxIndex ? 0 : previous + 1;
-      });
-    }, 3000);
-
-    return () => window.clearInterval(timer);
-  }, [featuredProducts.length, featuredVisibleCount]);
 
   useEffect(() => {
     let ignore = false;
@@ -596,92 +566,52 @@ export default function HomePage({
           </section>
         )}
 
-        {/* Featured Products (Discounted) - Slider */}
+        {/* Featured Products (Discounted) */}
         {featuredProducts.length > 0 && selectedCategory === 'all' && !searchQuery && (
           <section className="pro-section pro-featured-section">
             <div className="pro-section-header">
               <h2 className="pro-section-title">
                 🔥 Featured Deals
               </h2>
-            </div>
-            <div className="pro-featured-slider-wrapper">
-              <button 
-                className="pro-slider-arrow pro-slider-arrow-left"
-                onClick={() => {
-                  setFeaturedSlideIndex(prev => {
-                    const maxIndex = Math.max(0, featuredProducts.length - featuredVisibleCount);
-                    return prev <= 0 ? maxIndex : prev - 1;
-                  });
-                }}
-              >
-                ‹
+              <button className="pro-section-link" onClick={() => {}}>
+                View All <FiChevronRight />
               </button>
-              
-              <div 
-                className="pro-products-scroll pro-featured-slider" 
-                ref={featuredSlideRef}
-                style={{ transform: `translateX(-${featuredSlideIndex * (100 / featuredVisibleCount)}%)` }}
-              >
-                {featuredProducts.map(product => {
-                  const mainImage = product.image ? product.image.split(',')[0]?.trim() : '';
-                  return (
-                    <article
-                      key={`featured-${product.id}`}
-                      className={`pro-product-card ${clickedProductId === product.id ? 'pro-product-card-clicked' : ''}`}
-                      onClick={() => {
-                        handleProductCardClick(product.id);
-                        onOpenProduct(product);
-                      }}
-                    >
-                      <div className="pro-product-image">
+            </div>
+            <div className="pro-products-scroll">
+              {featuredProducts.map(product => {
+                const mainImage = product.image ? product.image.split(',')[0]?.trim() : '';
+                return (
+                  <article
+                    key={`featured-${product.id}`}
+                    className={`pro-product-card ${clickedProductId === product.id ? 'pro-product-card-clicked' : ''}`}
+                    onClick={() => {
+                      handleProductCardClick(product.id);
+                      onOpenProduct(product);
+                    }}
+                  >
+                    <div className="pro-product-image">
+                      {product.discount > 0 && (
+                        <span className="pro-discount-badge">-{product.discount}%</span>
+                      )}
+                      <ShimmerImage
+                        src={mainImage}
+                        alt={product.name}
+                        wrapperClassName="pro-product-image-shell"
+                      />
+                    </div>
+                    <div className="pro-product-info">
+                      <h3 className="pro-product-name">{product.name}</h3>
+                      <div className="pro-product-prices">
                         {product.discount > 0 && (
-                          <span className="pro-discount-badge">-{product.discount}%</span>
+                          <span className="pro-product-old-price">৳{Number(product.price).toFixed(2)}</span>
                         )}
-                        <ShimmerImage
-                          src={mainImage}
-                          alt={product.name}
-                          wrapperClassName="pro-product-image-shell"
-                        />
+                        <span className="pro-product-price">৳{getDiscountedUnitPrice(product).toFixed(2)}</span>
                       </div>
-                      <div className="pro-product-info">
-                        <h3 className="pro-product-name">{product.name}</h3>
-                        <div className="pro-product-prices">
-                          {product.discount > 0 && (
-                            <span className="pro-product-old-price">৳{Number(product.price).toFixed(2)}</span>
-                          )}
-                          <span className="pro-product-price">৳{getDiscountedUnitPrice(product).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-              
-              <button 
-                className="pro-slider-arrow pro-slider-arrow-right"
-                onClick={() => {
-                  setFeaturedSlideIndex(prev => {
-                    const maxIndex = Math.max(0, featuredProducts.length - featuredVisibleCount);
-                    return prev >= maxIndex ? 0 : prev + 1;
-                  });
-                }}
-              >
-                ›
-              </button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
-            
-            {/* Slider Dots */}
-            {featuredProducts.length > featuredVisibleCount && (
-              <div className="pro-slider-dots">
-                {Array.from({ length: featuredProducts.length - featuredVisibleCount + 1 }).map((_, index) => (
-                  <button
-                    key={index}
-                    className={`pro-slider-dot ${index === featuredSlideIndex ? 'pro-slider-dot-active' : ''}`}
-                    onClick={() => setFeaturedSlideIndex(index)}
-                  />
-                ))}
-              </div>
-            )}
           </section>
         )}
 
