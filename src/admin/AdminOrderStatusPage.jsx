@@ -20,7 +20,6 @@ import {
   FiTrash2,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
-import './admin.css';
 
 const CACHE_KEY = 'admin-orders-page-data';
 

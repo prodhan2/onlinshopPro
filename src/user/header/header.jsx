@@ -15,10 +15,10 @@ export default function StoreHeader({
   isCartHot,
   toggleDarkMode,
   darkMode,
-  onSearch,
+  searchFocused,
+  onSearchFocusChange,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [location, setLocation] = useState("Detecting location...");
   const [locationError, setLocationError] = useState(false);
   const searchInputRef = useRef(null);
@@ -67,36 +67,43 @@ export default function StoreHeader({
   }, []);
 
   const toggleSearch = () => {
-    setIsSearchExpanded(!isSearchExpanded);
-    if (!isSearchExpanded) {
+    if (onSearchFocusChange) {
+      onSearchFocusChange(!searchFocused);
+    }
+    if (!searchFocused) {
       setTimeout(() => searchInputRef.current?.focus(), 150);
     }
   };
 
   const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    if (onSearch) onSearch(value);
+    setSearchQuery(e.target.value);
   };
+
+  // Focus search input when searchFocused becomes true
+  useEffect(() => {
+    if (searchFocused && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchFocused]);
+
+  // Listen for toggle-search event from BottomNav
+  useEffect(() => {
+    const handleToggleSearch = () => {
+      if (onSearchFocusChange) {
+        onSearchFocusChange(prev => !prev);
+      }
+    };
+    
+    window.addEventListener('toggle-search', handleToggleSearch);
+    
+    return () => {
+      window.removeEventListener('toggle-search', handleToggleSearch);
+    };
+  }, [onSearchFocusChange]);
 
   return (
     <header className="store-header">
-      {/* Top Info Bar */}
-      <div className="header-top-bar">
-        <div className="header-top-content">
-          <div className="header-top-left">
-            <span className="header-top-item">
-              <FaMapMarkerAlt /> {location}
-            </span>
-            <span className="header-top-divider">|</span>
-            <span className="header-top-item">
-              <FaPhone /> 24/7 Support
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Header */}
+      {/* Mobile Header - Minimal */}
       <div className="main-header-content">
         <button className="header-menu-btn" onClick={onOpenMenu}>
           <FaBars />
@@ -106,71 +113,31 @@ export default function StoreHeader({
           <img src={logo} alt="Beautiful Dinajpur" className="header-logo-img" />
         </div>
 
-        {/* Desktop Search */}
-        <div className="header-search">
-          <div className="header-search-wrapper">
-            <FaSearch className="header-search-icon" />
-            <input
-              type="text"
-              className="header-search-input"
-              placeholder="Search products, categories..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-            {searchQuery && (
-              <button className="header-search-clear" onClick={() => setSearchQuery('')}>
-                ×
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Mobile Search Icon */}
-        <button className="header-search-icon-btn" onClick={toggleSearch}>
-          <FaSearch />
-        </button>
-
         {/* Actions */}
         <div className="header-actions">
           <button className="header-icon-btn" onClick={toggleDarkMode}>
             {darkMode ? <FiSun /> : <FiMoon />}
           </button>
 
-          {currentUser ? (
-            <>
-              <button
-                ref={cartButtonRef}
-                className={`header-icon-btn ${isCartHot || cartState.totalItems > 0 ? 'header-cart-hot' : ''}`}
-                onClick={onOpenCart}
-              >
-                <FiShoppingCart />
-                {cartState.totalItems > 0 && <span className="header-cart-badge">{cartState.totalItems}</span>}
-              </button>
-
-              <button className="header-user-btn" onClick={onOpenProfile}>
-                {currentUser.photoURL ? (
-                  <img src={currentUser.photoURL} alt="Profile" className="header-user-avatar" />
-                ) : (
-                  <span className="header-user-initials">
-                    {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
-                  </span>
-                )}
-              </button>
-            </>
-          ) : (
-            <button className="header-login-btn" onClick={onOpenLogin}>
-              <FiLogIn /> Login
+          {currentUser && (
+            <button className="header-user-btn" onClick={onOpenProfile}>
+              {currentUser.photoURL ? (
+                <img src={currentUser.photoURL} alt="Profile" className="header-user-avatar" />
+              ) : (
+                <span className="header-user-initials">
+                  {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                </span>
+              )}
             </button>
           )}
         </div>
       </div>
 
-      {/* Mobile Expandable Search */}
-      <div className={`header-search-expanded ${isSearchExpanded ? 'active' : ''}`}>
+      {/* Desktop Search (hidden on mobile) */}
+      <div className="header-search">
         <div className="header-search-wrapper">
           <FaSearch className="header-search-icon" />
           <input
-            ref={searchInputRef}
             type="text"
             className="header-search-input"
             placeholder="Search products, categories..."
@@ -182,6 +149,34 @@ export default function StoreHeader({
               ×
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Mobile Popup Search Overlay */}
+      <div className={`header-search-popup-overlay ${searchFocused ? 'active' : ''}`} onClick={() => onSearchFocusChange(false)}>
+        <div className="header-search-popup" onClick={(e) => e.stopPropagation()}>
+          <div className="header-search-popup-header">
+            <h3>Search Products</h3>
+            <button className="header-search-popup-close" onClick={() => onSearchFocusChange(false)}>×</button>
+          </div>
+          <div className="header-search-popup-body">
+            <div className="header-search-popup-wrapper">
+              <FaSearch className="header-search-popup-icon" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="header-search-popup-input"
+                placeholder="Search products, categories..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+              {searchQuery && (
+                <button className="header-search-popup-clear" onClick={() => setSearchQuery('')}>
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </header>

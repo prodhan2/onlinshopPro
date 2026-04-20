@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { addToCart, getCartItem, isProductInCart, subscribeCart } from '../bstoreapp/cardManager';
 import FullScreenImageView from '../bstoreapp/imageview';
 import { getDiscountedUnitPrice, parseNumber, splitProductImages } from '../bstoreapp/models';
 import { fetchShippingRules } from '../bstoreapp/shippingrules';
 import ShimmerImage from '../bstoreapp/ShimmerImage';
-import { FiArrowLeft, FiShoppingCart, FiStar, FiPackage } from 'react-icons/fi';
+import { FiArrowLeft, FiChevronLeft, FiChevronRight, FiImage, FiShoppingCart, FiStar } from 'react-icons/fi';
 import './details.css';
 
 export default function ProductDetailsPage({ product, currentUser, onBack, onOpenCart, onRequireLogin, onBuyNow }) {
+  const touchStartXRef = useRef(0);
+  const touchEndXRef = useRef(0);
   const [quantity, setQuantity] = useState(1);
   const [shippingRules, setShippingRules] = useState([]);
   const [selectedRule, setSelectedRule] = useState(null);
@@ -15,6 +17,8 @@ export default function ProductDetailsPage({ product, currentUser, onBack, onOpe
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [initialIndex, setInitialIndex] = useState(0);
   const [inCart, setInCart] = useState(() => isProductInCart(product));
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const images = splitProductImages(product);
 
   useEffect(() => subscribeCart(() => {
     setInCart(isProductInCart(product));
@@ -47,7 +51,42 @@ export default function ProductDetailsPage({ product, currentUser, onBack, onOpe
     };
   }, []);
 
-  const images = splitProductImages(product);
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [product]);
+
+  useEffect(() => {
+    if (images.length <= 1) {
+      setActiveImageIndex(0);
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveImageIndex((previous) => (previous + 1) % images.length);
+    }, 3500);
+
+    return () => window.clearInterval(timer);
+  }, [images.length]);
+
+  useEffect(() => {
+    if (images.length <= 1) {
+      return undefined;
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'ArrowRight') {
+        setActiveImageIndex((previous) => (previous + 1) % images.length);
+      }
+      if (event.key === 'ArrowLeft') {
+        setActiveImageIndex((previous) => (previous - 1 + images.length) % images.length);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length]);
+
+  const activeImage = images[activeImageIndex] || '';
   const unitPrice = getDiscountedUnitPrice(product);
   const subtotal = unitPrice * quantity;
   const shippingCharge = parseNumber(selectedRule?.charge, 60);
@@ -70,6 +109,36 @@ export default function ProductDetailsPage({ product, currentUser, onBack, onOpe
     }
   }
 
+  function goToPreviousImage() {
+    setActiveImageIndex((previous) => (previous - 1 + images.length) % images.length);
+  }
+
+  function goToNextImage() {
+    setActiveImageIndex((previous) => (previous + 1) % images.length);
+  }
+
+  function handleGalleryTouchStart(event) {
+    touchStartXRef.current = event.changedTouches[0]?.clientX ?? 0;
+    touchEndXRef.current = touchStartXRef.current;
+  }
+
+  function handleGalleryTouchMove(event) {
+    touchEndXRef.current = event.changedTouches[0]?.clientX ?? touchStartXRef.current;
+  }
+
+  function handleGalleryTouchEnd() {
+    const deltaX = touchStartXRef.current - touchEndXRef.current;
+    if (Math.abs(deltaX) < 45 || images.length <= 1) {
+      return;
+    }
+
+    if (deltaX > 0) {
+      goToNextImage();
+    } else {
+      goToPreviousImage();
+    }
+  }
+
   return (
     <div className="details-page">
       {/* Mobile App Bar */}
@@ -85,57 +154,114 @@ export default function ProductDetailsPage({ product, currentUser, onBack, onOpe
       </div>
 
       <div className="details-content">
-        {/* Image Gallery */}
         <div className="details-gallery">
-          <div className="details-main-image">
-            {images.length > 0 ? (
-              <button
-                className="details-image-button"
-                onClick={() => {
-                  setInitialIndex(0);
-                  setShowImageViewer(true);
-                }}
-              >
-                <ShimmerImage
-                  src={images[0]}
-                  alt={product.name}
-                  wrapperClassName="details-image-shell"
-                />
-                {images.length > 1 && (
-                  <div className="details-image-count">
-                    <FiPackage /> {images.length} photos
-                  </div>
-                )}
-              </button>
-            ) : (
-              <div className="details-image-placeholder">
-                <FiPackage />
-                <span>No image</span>
-              </div>
-            )}
-          </div>
+          <div className="details-gallery-card">
+            <div
+              className="details-gallery-stage"
+              onTouchStart={handleGalleryTouchStart}
+              onTouchMove={handleGalleryTouchMove}
+              onTouchEnd={handleGalleryTouchEnd}
+            >
+              {images.length ? (
+                <>
+                  <button
+                    type="button"
+                    className="details-image-button"
+                    onClick={() => {
+                      setInitialIndex(activeImageIndex);
+                      setShowImageViewer(true);
+                    }}
+                  >
+                    <div className="details-image-shell">
+                      <ShimmerImage
+                        src={activeImage}
+                        alt={`${product.name} ${activeImageIndex + 1}`}
+                        className="details-image-element"
+                        wrapperClassName="details-image-shell"
+                      />
+                    </div>
+                  </button>
 
-          {/* Thumbnail Gallery */}
-          {images.length > 1 && (
-            <div className="details-thumbnails">
-              {images.map((image, index) => (
-                <button
-                  key={index}
-                  className={`details-thumbnail ${index === 0 ? 'active' : ''}`}
-                  onClick={() => {
-                    setInitialIndex(index);
-                    setShowImageViewer(true);
-                  }}
-                >
-                  <ShimmerImage
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    wrapperClassName="details-thumb-shell"
-                  />
-                </button>
-              ))}
+                  {images.length > 1 ? (
+                    <>
+                      <button
+                        type="button"
+                        className="details-gallery-nav details-gallery-nav-prev"
+                        onClick={goToPreviousImage}
+                        aria-label="Previous image"
+                      >
+                        <FiChevronLeft />
+                      </button>
+                      <button
+                        type="button"
+                        className="details-gallery-nav details-gallery-nav-next"
+                        onClick={goToNextImage}
+                        aria-label="Next image"
+                      >
+                        <FiChevronRight />
+                      </button>
+                    </>
+                  ) : null}
+
+                  <div className="details-image-count">
+                    <FiImage />
+                    <span>{activeImageIndex + 1}/{images.length}</span>
+                  </div>
+
+                  <div className="details-gallery-chip">
+                    Swipe or tap to explore
+                  </div>
+                </>
+              ) : (
+                <div className="details-image-placeholder">
+                  <FiImage />
+                  <span>No product image</span>
+                </div>
+              )}
             </div>
-          )}
+
+            {images.length > 1 ? (
+              <>
+                <div className="details-gallery-dots" aria-label="Image navigation dots">
+                  {images.map((image, index) => (
+                    <button
+                      key={`${image}-${index}`}
+                      type="button"
+                      className={`details-gallery-dot ${index === activeImageIndex ? 'active' : ''}`}
+                      onClick={() => setActiveImageIndex(index)}
+                      aria-label={`Show image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <div className="details-thumbnails">
+                  {images.map((image, index) => (
+                    <button
+                      key={`${image}-thumb-${index}`}
+                      type="button"
+                      className={`details-thumbnail ${index === activeImageIndex ? 'active' : ''}`}
+                      onClick={() => setActiveImageIndex(index)}
+                      aria-label={`Preview image ${index + 1}`}
+                    >
+                      <div className="details-thumb-shell">
+                        <ShimmerImage
+                          src={image}
+                          alt={`${product.name} thumbnail ${index + 1}`}
+                          className="details-thumb-image"
+                          wrapperClassName="details-thumb-shell"
+                        />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="details-gallery-meta">
+                  <span className="details-gallery-meta-label">Gallery</span>
+                  <span className="details-gallery-meta-value">{images.length} photos available</span>
+                </div>
+              </>
+            ) : null}
+          </div>
         </div>
 
         {/* Product Info */}
@@ -194,12 +320,16 @@ export default function ProductDetailsPage({ product, currentUser, onBack, onOpe
               <label className="details-label">Delivery Area</label>
               {loadingRules ? (
                 <div className="details-loading">Loading shipping options...</div>
+              ) : shippingRules.length === 0 ? (
+                <div className="details-no-areas">No delivery areas available</div>
               ) : (
                 <select
                   className="details-select"
                   value={selectedRule?.areaName ?? ''}
                   onChange={e => setSelectedRule(shippingRules.find(r => r.areaName === e.target.value) ?? null)}
+                  aria-label="Delivery Area"
                 >
+                  <option value="" disabled>Select delivery area</option>
                   {shippingRules.map(rule => (
                     <option key={rule.areaName} value={rule.areaName}>
                       {rule.areaName} - ৳{parseNumber(rule.charge, 60).toFixed(2)}
@@ -216,7 +346,7 @@ export default function ProductDetailsPage({ product, currentUser, onBack, onOpe
               <span>Subtotal</span>
               <span>৳{subtotal.toFixed(2)}</span>
             </div>
-            <div className="details-summary.row">
+            <div className="details-summary-row">
               <span>Shipping</span>
               <span>৳{shippingCharge.toFixed(2)}</span>
             </div>

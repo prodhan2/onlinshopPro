@@ -20,7 +20,6 @@ import {
   FiChevronDown,
   FiChevronUp,
 } from 'react-icons/fi';
-import './admin.css';
 
 function toMillis(value) {
   if (!value) return 0;

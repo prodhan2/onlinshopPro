@@ -17,7 +17,6 @@ import {
   FiGrid,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
-import './admin.css';
 
 // Cache helpers
 const CACHE_KEYS = {
@@ -232,21 +231,22 @@ export default function AdminDashboardHome({ currentUser }) {
   ];
 
   return (
-    <div className="admin-dashboard-home animate-fade-in">
+    <div className="admin-dashboard-home animate-fade-in space-y-5">
       {/* Action Header */}
-      <div className="card-header-flex mb-4">
+      <div className="card-header-flex mb-0 rounded-[30px] border border-slate-200/70 bg-[linear-gradient(135deg,#0f172a_0%,#1e3a8a_100%)] p-5 text-white shadow-[0_24px_60px_rgba(15,23,42,0.22)]">
         <div>
-          <h2 className="admin-page-title" style={{ background: 'none', webkitTextFillColor: 'initial', color: 'var(--admin-text-main)' }}>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-200">Admin Command</p>
+          <h2 className="admin-page-title" style={{ background: 'none', webkitTextFillColor: 'initial', color: 'white' }}>
             Welcome back, {currentUser?.displayName?.split(' ')[0] || 'Admin'}
           </h2>
-          <p className="admin-text-muted">Here's what's happening with your store today.</p>
+          <p className="admin-text-muted" style={{ color: 'rgba(226, 232, 240, 0.8)' }}>Here's what's happening with your store today.</p>
         </div>
         <div className="admin-header-actions">
-          <button className="btn-modern btn-primary-modern" onClick={loadData} disabled={loading}>
+          <button className="btn-modern btn-primary-modern rounded-2xl bg-white text-slate-950 shadow-xl" onClick={loadData} disabled={loading}>
             <FiRefreshCw className={loading ? 'spin' : ''} />
             {loading ? 'Refreshing...' : 'Refresh Data'}
           </button>
-          <button className="btn-modern" style={{ background: 'white', border: '1px solid #e2e8f0' }} onClick={downloadDashboardPDF}>
+          <button className="btn-modern rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur" onClick={downloadDashboardPDF}>
             <FiDownload /> Report
           </button>
         </div>
@@ -254,7 +254,7 @@ export default function AdminDashboardHome({ currentUser }) {
 
       {/* Main Stats Row */}
       <div className="stats-row">
-        <div className="stat-box">
+        <div className="stat-box rounded-[26px] border border-white/70 bg-white/85 shadow-[0_18px_35px_rgba(148,163,184,0.16)] backdrop-blur">
           <div className="stat-icon-wrap" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
             <FiUsers />
           </div>
@@ -263,7 +263,7 @@ export default function AdminDashboardHome({ currentUser }) {
             <span className="stat-lab">Total Users</span>
           </div>
         </div>
-        <div className="stat-box">
+        <div className="stat-box rounded-[26px] border border-white/70 bg-white/85 shadow-[0_18px_35px_rgba(148,163,184,0.16)] backdrop-blur">
           <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
             <FiPackage />
           </div>
@@ -272,7 +272,7 @@ export default function AdminDashboardHome({ currentUser }) {
             <span className="stat-lab">Products</span>
           </div>
         </div>
-        <div className="stat-box">
+        <div className="stat-box rounded-[26px] border border-white/70 bg-white/85 shadow-[0_18px_35px_rgba(148,163,184,0.16)] backdrop-blur">
           <div className="stat-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
             <FiShoppingBag />
           </div>
@@ -281,7 +281,7 @@ export default function AdminDashboardHome({ currentUser }) {
             <span className="stat-lab">Total Orders</span>
           </div>
         </div>
-        <div className="stat-box">
+        <div className="stat-box rounded-[26px] border border-white/70 bg-white/85 shadow-[0_18px_35px_rgba(148,163,184,0.16)] backdrop-blur">
           <div className="stat-icon-wrap" style={{ background: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4' }}>
             <FiDollarSign />
           </div>
@@ -293,7 +293,7 @@ export default function AdminDashboardHome({ currentUser }) {
       </div>
 
       {/* Quick Status Section */}
-      <div className="admin-card-modern">
+      <div className="admin-card-modern rounded-[30px] border border-white/70 bg-white/80 shadow-[0_20px_45px_rgba(148,163,184,0.14)] backdrop-blur">
         <h3 className="h5 mb-4 d-flex align-items-center gap-2">
           <FiTrendingUp className="text-primary" /> Order Status Overview
         </h3>
@@ -332,7 +332,7 @@ export default function AdminDashboardHome({ currentUser }) {
       </div>
 
       {/* Management Sections Grid */}
-      <h3 className="h5 mb-4 mt-5 d-flex align-items-center gap-2">
+      <h3 className="mt-2 flex items-center gap-2 text-lg font-black text-slate-900">
         <FiGrid className="text-primary" /> Quick Management
       </h3>
       <div className="admin-nav-grid">
@@ -369,7 +369,7 @@ export default function AdminDashboardHome({ currentUser }) {
       </div>
 
       {/* Footer Quick Access */}
-      <div className="admin-card-modern mt-5" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', color: 'white', border: 'none' }}>
+      <div className="admin-card-modern mt-0 rounded-[30px] border-none shadow-[0_22px_50px_rgba(15,23,42,0.22)]" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', color: 'white', border: 'none' }}>
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-4">
           <div>
             <h3 className="h4 mb-1">System Shortcuts</h3>

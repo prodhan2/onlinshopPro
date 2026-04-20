@@ -4,7 +4,6 @@ import { db } from '../firebase';
 import { convertToWebP } from '../bstoreapp/webpConverter';
 import ConfirmDialog from '../components/ConfirmDialog';
 import logo from '../bstoreapp/assets/images/logo.png';
-import './admin.css';
 
 const BEEIMG_API_KEY = '58c9ff18b1cf549b8fa5b946d5860f27';
 

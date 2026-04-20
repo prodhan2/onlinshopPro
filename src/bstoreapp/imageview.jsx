@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ShimmerImage from './ShimmerImage';
 
 export default function FullScreenImageView({ images, initialIndex = 0, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const touchStartXRef = useRef(0);
+  const touchEndXRef = useRef(0);
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -10,10 +12,10 @@ export default function FullScreenImageView({ images, initialIndex = 0, onClose 
         onClose?.();
       }
       if (event.key === 'ArrowRight') {
-        setCurrentIndex(index => Math.min(index + 1, images.length - 1));
+        setCurrentIndex(index => (index + 1) % images.length);
       }
       if (event.key === 'ArrowLeft') {
-        setCurrentIndex(index => Math.max(index - 1, 0));
+        setCurrentIndex(index => (index - 1 + images.length) % images.length);
       }
     }
 
@@ -25,9 +27,45 @@ export default function FullScreenImageView({ images, initialIndex = 0, onClose 
     return null;
   }
 
+  function goPrev() {
+    setCurrentIndex(index => (index - 1 + images.length) % images.length);
+  }
+
+  function goNext() {
+    setCurrentIndex(index => (index + 1) % images.length);
+  }
+
+  function handleTouchStart(event) {
+    touchStartXRef.current = event.changedTouches[0]?.clientX ?? 0;
+    touchEndXRef.current = touchStartXRef.current;
+  }
+
+  function handleTouchMove(event) {
+    touchEndXRef.current = event.changedTouches[0]?.clientX ?? touchStartXRef.current;
+  }
+
+  function handleTouchEnd() {
+    const deltaX = touchStartXRef.current - touchEndXRef.current;
+    if (Math.abs(deltaX) < 45 || images.length <= 1) {
+      return;
+    }
+
+    if (deltaX > 0) {
+      goNext();
+    } else {
+      goPrev();
+    }
+  }
+
   return (
     <div className="bstore-modal" onClick={onClose}>
-      <div className="bstore-modal__frame" onClick={event => event.stopPropagation()}>
+      <div
+        className="bstore-modal__frame"
+        onClick={event => event.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <button className="bstore-icon-button bstore-modal__close" type="button" onClick={onClose}>
           x
         </button>
@@ -48,19 +86,33 @@ export default function FullScreenImageView({ images, initialIndex = 0, onClose 
             <button
               className="bstore-icon-button"
               type="button"
-              onClick={() => setCurrentIndex(index => Math.max(index - 1, 0))}
-              disabled={currentIndex === 0}
+              onClick={goPrev}
             >
               Prev
             </button>
             <button
               className="bstore-icon-button"
               type="button"
-              onClick={() => setCurrentIndex(index => Math.min(index + 1, images.length - 1))}
-              disabled={currentIndex === images.length - 1}
+              onClick={goNext}
             >
               Next
             </button>
+          </div>
+        ) : null}
+
+        {images.length > 1 ? (
+          <div className="bstore-modal__controls">
+            {images.map((image, index) => (
+              <button
+                key={`${image}-${index}`}
+                className="bstore-icon-button"
+                type="button"
+                onClick={() => setCurrentIndex(index)}
+                aria-label={`Go to image ${index + 1}`}
+              >
+                {index + 1}
+              </button>
+            ))}
           </div>
         ) : null}
       </div>

@@ -1,22 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { convertToWebP } from '../bstoreapp/webpConverter';
 import ConfirmDialog from '../components/ConfirmDialog';
 import logo from '../bstoreapp/assets/images/logo.png';
-import './catalogAdmin.css';
 
 const BEEIMG_API_KEY = '58c9ff18b1cf549b8fa5b946d5860f27';
 
 async function uploadImageToBeeImg(file) {
   try {
-    // Log original file info
     console.log(`Uploading: ${file.name} (${(file.size / 1024).toFixed(1)}KB, ${file.type || 'unknown type'})`);
-    
-    // Accept ALL file types - let browser and server handle validation
-    // Convert to WebP before upload for smaller file size (supports all image types)
     const webpFile = await convertToWebP(file, 0.85, 1920);
-    
     console.log(`Converted to: ${webpFile.name} (${(webpFile.size / 1024).toFixed(1)}KB)`);
     
     const formData = new FormData();
@@ -99,337 +93,114 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   const [editingProductDocId, setEditingProductDocId] = useState(null);
   const [editingPaymentDocId, setEditingPaymentDocId] = useState(null);
   const [editingBannerDocId, setEditingBannerDocId] = useState(null);
-  const [activeSection, setActiveSection] = useState('categories');
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [loadingData, setLoadingData] = useState(false);
-  const [mobileView, setMobileView] = useState('form'); // 'form' or 'list' for mobile toggle
-  const [successPopup, setSuccessPopup] = useState({ show: false, message: '', type: 'success' });
-  const [confirmDelete, setConfirmDelete] = useState({ show: false, type: '', item: null });
-  const [zoomedImage, setZoomedImage] = useState(null); // For image zoom modal
-
-  const [categoryForm, setCategoryForm] = useState({ id: '', name: '', iconUrl: '' });
-  const [categoryFile, setCategoryFile] = useState(null);
-
-  const [productForm, setProductForm] = useState({
-    id: '',
-    name: '',
-    description: '',
-    image: '',
-    price: '',
-    discount: '0',
-    stock: '0',
-    categoryId: '',
-    rating: '0',
-    available: true,
-  });
-  const [productFile, setProductFile] = useState([]);
-  const [imageOrder, setImageOrder] = useState([]);
-  const [coverImageId, setCoverImageId] = useState('');
-  const [paymentForm, setPaymentForm] = useState({
-    area_name: '',
-    charge: '',
-    contact_number: '',
-    COD_instructions: '',
-    bKash_instructions: '',
-  });
-  const [bannerForm, setBannerForm] = useState({
-    no: '',
-    imageUrl: '',
-    description: '',
-    show: true,
-  });
-  const [bannerFile, setBannerFile] = useState(null);
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
-
-  // Success/Error popup helpers
-  const showSuccess = (message) => {
-    setSuccessPopup({ show: true, message, type: 'success' });
-    setTimeout(() => setSuccessPopup({ show: false, message: '', type: 'success' }), 3000);
-  };
-
-  const showError = (message) => {
-    setSuccessPopup({ show: true, message, type: 'error' });
-    setTimeout(() => setSuccessPopup({ show: false, message: '', type: 'error' }), 4000);
-  };
-
-  const sortedCategories = useMemo(
-    () => [...categories].sort((a, b) => String(a.name).localeCompare(String(b.name))),
-    [categories],
-  );
+  const [activeSection, setActiveSection] = useState('categories');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mobileView, setMobileView] = useState('list');
+  const [categoryForm, setCategoryForm] = useState({ id: '', name: '', description: '' });
+  const [productForm, setProductForm] = useState({
+    id: '', name: '', description: '', image: '', price: '', discount: '0', stock: '0', categoryId: '', rating: '0', available: true,
+  });
+  const [productFile, setProductFile] = useState([]);
+  const [paymentForm, setPaymentForm] = useState({
+    area_name: '', charge: '', contact_number: '', COD_instructions: '', bKash_instructions: '',
+  });
+  const [bannerForm, setBannerForm] = useState({ no: '', imageUrl: '', description: '', show: true });
+  const [bannerFile, setBannerFile] = useState(null);
+  const [successPopup, setSuccessPopup] = useState({ show: false, message: '', type: 'success' });
+  const [confirmDelete, setConfirmDelete] = useState({ show: false, type: '', item: null, onConfirm: null });
+  const [zoomedImage, setZoomedImage] = useState(null);
+  const [coverImageId, setCoverImageId] = useState(null);
 
   const nextCategoryId = useMemo(() => generateNextCategoryId(categories), [categories]);
   const nextProductId = useMemo(() => generateNextProductId(products), [products]);
   const nextBannerNo = useMemo(() => generateNextBannerNo(banners), [banners]);
-
-  const toMillis = (value) => {
-    if (!value) return 0;
-    if (typeof value === 'string') {
-      const ms = new Date(value).getTime();
-      return Number.isFinite(ms) ? ms : 0;
-    }
-    if (typeof value?.toMillis === 'function') return value.toMillis();
-    return 0;
-  };
-
-  const loadCatalogData = useCallback(async () => {
-    setLoadingData(true);
-    try {
-      const [categorySnap, productSnap, paymentSnap, bannerSnap] = await Promise.all([
-        getDocs(collection(db, 'categories')),
-        getDocs(collection(db, 'products')),
-        getDocs(collection(db, 'paymentDetails')),
-        getDocs(collection(db, 'banners')),
-      ]);
-
-      const fetchedCategories = categorySnap.docs
-        .map((docSnap) => ({ _docId: docSnap.id, ...docSnap.data() }))
-        .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
-
-      const fetchedProducts = productSnap.docs
-        .map((docSnap) => ({ _docId: docSnap.id, ...docSnap.data() }))
-        .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
-
-      const fetchedPaymentDetails = paymentSnap.docs
-        .map((docSnap) => ({ _docId: docSnap.id, ...docSnap.data() }))
-        .sort((a, b) => String(a.area_name || '').localeCompare(String(b.area_name || '')));
-
-      const fetchedBanners = bannerSnap.docs
-        .map((docSnap) => ({ _docId: docSnap.id, ...docSnap.data() }))
-        .sort((a, b) => Number(a.no || 0) - Number(b.no || 0));
-
-      setCategories(fetchedCategories);
-      setProducts(fetchedProducts);
-      setPaymentDetails(fetchedPaymentDetails);
-      setBanners(fetchedBanners);
-    } catch {
-      setStatus('Failed to load catalog data from Firebase.');
-    } finally {
-      setLoadingData(false);
-    }
-  }, []);
-
-  const uploadPreviews = useMemo(() => productFile.map((item) => item.preview), [productFile]);
-
-  const manualPreviews = useMemo(() => splitImages(productForm.image), [productForm.image]);
+  const actor = useMemo(() => currentUser ? { displayName: currentUser.displayName, photoURL: currentUser.photoURL } : null, [currentUser]);
 
   const imageItems = useMemo(() => {
-    const urlItems = manualPreviews.map((src, idx) => ({
-      id: `url-${idx}`,
-      type: 'url',
-      src,
-      label: `URL ${idx + 1}`,
-    }));
+    const urls = splitImages(productForm.image);
+    const files = productFile.map((f) => ({ id: f.id, src: f.preview, label: f.file.name }));
+    return [...files, ...urls.map((url, i) => ({ id: `url-${i}`, src: url, label: 'URL Image' }))];
+  }, [productForm.image, productFile]);
 
-    const fileItems = productFile.map((item, idx) => ({
-      id: item.id,
-      type: 'file',
-      src: item.preview,
-      label: `FILE ${idx + 1}`,
-    }));
-
-    const map = new Map([...urlItems, ...fileItems].map((item) => [item.id, item]));
-    const ids = [...map.keys()];
-    const orderedIds = imageOrder.length
-      ? imageOrder.filter((id) => map.has(id)).concat(ids.filter((id) => !imageOrder.includes(id)))
-      : ids;
-    return orderedIds.map((id) => map.get(id));
-  }, [manualPreviews, productFile, imageOrder]);
-
-  useEffect(() => {
-    const ids = imageItems.map((item) => item.id);
-    setImageOrder((prev) => {
-      if (!prev.length) return ids;
-      const kept = prev.filter((id) => ids.includes(id));
-      const extras = ids.filter((id) => !kept.includes(id));
-      return [...kept, ...extras];
-    });
-  }, [imageItems]);
-
-  useEffect(() => {
-    if (!coverImageId) return;
-    if (!imageItems.some((item) => item.id === coverImageId)) {
-      setCoverImageId('');
-    }
-  }, [coverImageId, imageItems]);
-
-  const reorderImages = (sourceId, targetId) => {
-    if (!sourceId || !targetId || sourceId === targetId) return;
-    setImageOrder((prev) => {
-      const ids = prev.length ? [...prev] : imageItems.map((item) => item.id);
-      const from = ids.indexOf(sourceId);
-      const to = ids.indexOf(targetId);
-      if (from < 0 || to < 0) return ids;
-      const [picked] = ids.splice(from, 1);
-      ids.splice(to, 0, picked);
-      return ids;
-    });
+  const showSuccess = (message) => {
+    setSuccessPopup({ show: true, message, type: 'success' });
+    setTimeout(() => setSuccessPopup((p) => (p.type === 'success' ? { show: false, message: '', type: 'success' } : p)), 3000);
   };
 
-  const removeImageItem = (itemId) => {
-    if (itemId.startsWith('url-')) {
-      const index = Number(itemId.replace('url-', ''));
-      const urls = splitImages(productForm.image);
-      if (!Number.isNaN(index) && urls[index] != null) {
-        urls.splice(index, 1);
-        setProductForm((prev) => ({ ...prev, image: urls.join(', ') }));
-      }
-      return;
-    }
-
-    setProductFile((prev) => {
-      const found = prev.find((x) => x.id === itemId);
-      if (found?.preview) URL.revokeObjectURL(found.preview);
-      return prev.filter((x) => x.id !== itemId);
-    });
+  const showError = (message) => {
+    setSuccessPopup({ show: true, message, type: 'error' });
+    setTimeout(() => setSuccessPopup((p) => (p.type === 'error' ? { show: false, message: '', type: 'error' } : p)), 3000);
   };
 
   useEffect(() => {
-    if (editingCategoryDocId) return;
-    setCategoryForm((prev) => ({ ...prev, id: nextCategoryId }));
-  }, [editingCategoryDocId, nextCategoryId]);
+    if (!authReady || !canEdit) return;
 
-  useEffect(() => {
-    if (editingProductDocId) return;
-    setProductForm((prev) => ({ ...prev, id: nextProductId }));
-  }, [editingProductDocId, nextProductId]);
-
-  useEffect(() => {
-    if (editingBannerDocId) return;
-    setBannerForm((prev) => ({ ...prev, no: nextBannerNo }));
-  }, [editingBannerDocId, nextBannerNo]);
-
-  useEffect(() => {
-    if (!authReady || !canEdit || !currentUser?.uid) return;
-    loadCatalogData();
-  }, [authReady, canEdit, currentUser?.uid, loadCatalogData]);
-
-  useEffect(() => {
-    if (!settingsOpen) return;
-
-    const onDocClick = (event) => {
-      if (!settingsRef.current) return;
-      if (!settingsRef.current.contains(event.target)) {
-        setSettingsOpen(false);
+    const unsubscribe = onSnapshot(collection(db, 'categories'), (snap) => {
+      const items = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+      setCategories(items);
+      if (!productForm.categoryId && items.length > 0) {
+        setProductForm((p) => ({ ...p, categoryId: items[0].id }));
       }
-    };
+    });
 
-    const onEsc = (event) => {
-      if (event.key === 'Escape') setSettingsOpen(false);
-    };
+    return () => unsubscribe();
+  }, [authReady, canEdit, productForm.categoryId]);
 
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onEsc);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onEsc);
-    };
-  }, [settingsOpen]);
+  useEffect(() => {
+    if (!authReady || !canEdit) return;
+    const unsubscribe = onSnapshot(collection(db, 'products'), (snap) => {
+      const items = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+      setProducts(items);
+    });
+    return () => unsubscribe();
+  }, [authReady, canEdit]);
 
-  const actor = useMemo(
-    () => ({
-      uid: currentUser?.uid || '',
-      displayName: currentUser?.displayName || currentUser?.email || 'Unknown',
-      photoURL: currentUser?.photoURL || '',
-    }),
-    [currentUser?.uid, currentUser?.displayName, currentUser?.email, currentUser?.photoURL],
-  );
+  useEffect(() => {
+    if (!authReady || !canEdit) return;
+    const unsubscribe = onSnapshot(collection(db, 'paymentDetails'), (snap) => {
+      const items = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+      setPaymentDetails(items);
+    });
+    return () => unsubscribe();
+  }, [authReady, canEdit]);
 
-  if (!authReady) {
-    return (
-      <section className="catalog-admin-page">
-        <header className="catalog-admin-header">
-          <button type="button" className="btn" onClick={() => window.history.back()}>Back</button>
-          <h2>Catalog Manager</h2>
-        </header>
-        <div className="catalog-admin-status">Checking permissions...</div>
-      </section>
-    );
-  }
+  useEffect(() => {
+    if (!authReady || !canEdit) return;
+    const unsubscribe = onSnapshot(collection(db, 'banners'), (snap) => {
+      const items = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+      const sorted = [...items].sort((a, b) => Number(a.no || 0) - Number(b.no || 0));
+      setBanners(sorted);
+    });
+    return () => unsubscribe();
+  }, [authReady, canEdit]);
 
-  if (!currentUser) {
-    return (
-      <section className="catalog-admin-page">
-        <header className="catalog-admin-header">
-          <button type="button" className="btn" onClick={() => window.history.back()}>Back</button>
-          <h2>Catalog Manager</h2>
-        </header>
-        <div className="catalog-admin-status">Please login to continue.</div>
-      </section>
-    );
-  }
-
-  if (!canEdit) {
-    return (
-      <section className="catalog-admin-page">
-        <header className="catalog-admin-header">
-          <button type="button" className="btn" onClick={() => window.history.back()}>Back</button>
-          <h2>Catalog Manager</h2>
-        </header>
-        <div className="catalog-admin-status">Access denied. Only admin and seller users can edit categories and products.</div>
-      </section>
-    );
-  }
-
-  const addCategory = async (e) => {
+  const saveCategory = async (e) => {
     e.preventDefault();
     if (!categoryForm.name.trim()) {
-      setStatus('Category Name is required.');
+      setStatus('Category name is required.');
       return;
     }
-
     setBusy(true);
     setStatus('Saving category...');
     try {
-      let iconUrl = categoryForm.iconUrl.trim();
-      if (categoryFile) {
-        try {
-          iconUrl = await uploadImageToBeeImg(categoryFile);
-        } catch {
-          iconUrl = await toDataUrl(categoryFile);
-        }
-      }
-
       const now = new Date().toISOString();
+      const payload = { name: categoryForm.name.trim(), description: categoryForm.description.trim() };
       let next;
-      const autoCategoryId = editingCategoryDocId ? categoryForm.id.trim() : nextCategoryId;
-
       if (editingCategoryDocId) {
-        await updateDoc(doc(db, 'categories', editingCategoryDocId), {
-          id: autoCategoryId,
-          name: categoryForm.name.trim(),
-          iconUrl,
-          updatedAt: now,
-          updatedBy: actor,
-        });
-        next = categories.map((item) => {
-          if (item._docId !== editingCategoryDocId) return item;
-          return {
-            ...item,
-            id: autoCategoryId,
-            name: categoryForm.name.trim(),
-            iconUrl,
-            updatedAt: now,
-            updatedBy: actor,
-          };
-        });
+        await updateDoc(doc(db, 'categories', editingCategoryDocId), { ...payload, updatedAt: now, updatedBy: actor });
+        next = categories.map((item) =>
+          item._docId === editingCategoryDocId ? { ...item, ...payload, updatedAt: now, updatedBy: actor } : item,
+        );
       } else {
-        const payload = {
-          id: autoCategoryId,
-          name: categoryForm.name.trim(),
-          iconUrl,
-          createdAt: now,
-          createdBy: actor,
-        };
-        const ref = await addDoc(collection(db, 'categories'), payload);
-        next = [{ _docId: ref.id, ...payload }, ...categories];
+        const createPayload = { ...payload, createdAt: now, createdBy: actor };
+        const ref = await addDoc(collection(db, 'categories'), createPayload);
+        next = [{ _docId: ref.id, ...createPayload }, ...categories];
       }
-
       setCategories(next);
-      setCategoryForm({ id: generateNextCategoryId(next), name: '', iconUrl: '' });
-      setCategoryFile(null);
       setEditingCategoryDocId(null);
-      
+      setCategoryForm({ id: '', name: '', description: '' });
       const message = editingCategoryDocId ? 'Category updated successfully! ✅' : 'Category added successfully! ✅';
       showSuccess(message);
       setStatus(message);
@@ -442,151 +213,10 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     }
   };
 
-  const addProduct = async (e) => {
-    e.preventDefault();
-    if (!productForm.name.trim()) {
-      setStatus('Product Name is required.');
-      return;
-    }
-    if (!productForm.categoryId) {
-      setStatus('Please select a category.');
-      return;
-    }
-
-    setBusy(true);
-    setStatus('Saving product...');
-    try {
-      const manualUrls = splitImages(productForm.image);
-
-      const uploadedMap = new Map();
-      for (const item of productFile) {
-        try {
-          const url = await uploadImageToBeeImg(item.file);
-          uploadedMap.set(item.id, url);
-        } catch {
-          const fallbackUrl = await toDataUrl(item.file);
-          uploadedMap.set(item.id, fallbackUrl);
-        }
-      }
-
-      const imageMap = new Map();
-      manualUrls.forEach((url, index) => {
-        imageMap.set(`url-${index}`, url);
-      });
-      uploadedMap.forEach((url, id) => {
-        imageMap.set(id, url);
-      });
-
-      const orderedIds = imageOrder.length ? imageOrder : [...imageMap.keys()];
-      const orderedUrls = orderedIds.map((id) => imageMap.get(id)).filter(Boolean);
-      const tailUrls = [...imageMap.values()].filter((url) => !orderedUrls.includes(url));
-      let mergedImages = [...orderedUrls, ...tailUrls];
-
-      if (coverImageId && imageMap.has(coverImageId)) {
-        const coverUrl = imageMap.get(coverImageId);
-        mergedImages = [coverUrl, ...mergedImages.filter((url) => url !== coverUrl)];
-      }
-
-      const imageUrl = [...new Set(mergedImages)].join(', ');
-
-      const now = new Date().toISOString();
-      let next;
-      const autoProductId = editingProductDocId ? productForm.id.trim() : nextProductId;
-
-      if (editingProductDocId) {
-        await updateDoc(doc(db, 'products', editingProductDocId), {
-          id: autoProductId,
-          name: productForm.name.trim(),
-          description: productForm.description.trim(),
-          image: imageUrl,
-          price: productForm.price || '0',
-          discount: productForm.discount || '0',
-          stock: productForm.stock || '0',
-          categoryId: productForm.categoryId,
-          rating: productForm.rating || '0',
-          available: Boolean(productForm.available),
-          updatedAt: now,
-          updatedBy: actor,
-        });
-        next = products.map((item) => {
-          if (item._docId !== editingProductDocId) return item;
-          return {
-            ...item,
-            id: autoProductId,
-            name: productForm.name.trim(),
-            description: productForm.description.trim(),
-            image: imageUrl,
-            price: productForm.price || '0',
-            discount: productForm.discount || '0',
-            stock: productForm.stock || '0',
-            categoryId: productForm.categoryId,
-            rating: productForm.rating || '0',
-            available: Boolean(productForm.available),
-            updatedAt: now,
-            updatedBy: actor,
-          };
-        });
-      } else {
-        const payload = {
-          id: autoProductId,
-          name: productForm.name.trim(),
-          description: productForm.description.trim(),
-          image: imageUrl,
-          price: productForm.price || '0',
-          discount: productForm.discount || '0',
-          stock: productForm.stock || '0',
-          categoryId: productForm.categoryId,
-          rating: productForm.rating || '0',
-          available: Boolean(productForm.available),
-          createdAt: now,
-          createdBy: actor,
-        };
-        const ref = await addDoc(collection(db, 'products'), payload);
-        next = [{ _docId: ref.id, ...payload }, ...products];
-      }
-
-      setProducts(next);
-      setProductForm({
-        id: generateNextProductId(next),
-        name: '',
-        description: '',
-        image: '',
-        price: '',
-        discount: '0',
-        stock: '0',
-        categoryId: '',
-        rating: '0',
-        available: true,
-      });
-      productFile.forEach((item) => {
-        if (item.preview) URL.revokeObjectURL(item.preview);
-      });
-      setProductFile([]);
-      setImageOrder([]);
-      setCoverImageId('');
-      setEditingProductDocId(null);
-      
-      const message = editingProductDocId ? 'Product updated successfully! ✅' : 'Product added successfully! ✅';
-      showSuccess(message);
-      setStatus(message);
-    } catch (error) {
-      console.error('Product error:', error);
-      showError('Failed to save product. Please try again.');
-      setStatus('Failed to save product.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleEditCategory = (item) => {
     setEditingCategoryDocId(item._docId);
-    setCategoryForm({
-      id: item.id || '',
-      name: item.name || '',
-      iconUrl: item.iconUrl || '',
-    });
-    setCategoryFile(null);
-    setStatus(`Editing category: ${item.name || item.id}`);
+    setCategoryForm({ id: item.id || '', name: item.name || '', description: item.description || '' });
+    setStatus(`Editing category: ${item.name}`);
   };
 
   const handleDeleteCategory = (item) => {
@@ -597,8 +227,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
         setCategories(next);
         if (editingCategoryDocId === item._docId) {
           setEditingCategoryDocId(null);
-          setCategoryForm({ id: generateNextCategoryId(next), name: '', iconUrl: '' });
-          setCategoryFile(null);
+          setCategoryForm({ id: '', name: '', description: '' });
         }
         const message = `Category "${item.name}" deleted successfully! 🗑️`;
         showSuccess(message);
@@ -611,6 +240,103 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     });
   };
 
+  const reorderImages = (from, to) => {
+    if (from === to || !from || !to) return;
+    const allItems = [...imageItems];
+    const fromIdx = allItems.findIndex((i) => i.id === from);
+    const toIdx = allItems.findIndex((i) => i.id === to);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const [item] = allItems.splice(fromIdx, 1);
+    allItems.splice(toIdx, 0, item);
+    const newUrls = allItems.filter((i) => i.id.startsWith('url-')).map((i) => i.src).join(', ');
+    setProductForm((p) => ({ ...p, image: newUrls }));
+  };
+
+  const removeImageItem = (id) => {
+    if (id.startsWith('url-')) {
+      const urls = splitImages(productForm.image);
+      const idx = parseInt(id.split('-')[1]);
+      urls.splice(idx, 1);
+      setProductForm((p) => ({ ...p, image: urls.join(', ') }));
+    } else {
+      setProductFile((pf) => pf.filter((f) => f.id !== id));
+    }
+  };
+
+  const saveProduct = async (e) => {
+    e.preventDefault();
+    if (!productForm.name.trim()) {
+      setStatus('Product name is required.');
+      return;
+    }
+    setBusy(true);
+    setStatus('Saving product...');
+    try {
+      let image = productForm.image.trim();
+      for (const file of productFile) {
+        try {
+          const url = await uploadImageToBeeImg(file.file);
+          image = image ? `${image}, ${url}` : url;
+        } catch {
+          const dataUrl = await toDataUrl(file.file);
+          image = image ? `${image}, ${dataUrl}` : dataUrl;
+        }
+      }
+
+      const now = new Date().toISOString();
+      const payload = {
+        id: productForm.id || nextProductId,
+        name: productForm.name.trim(),
+        description: productForm.description.trim(),
+        image: image || '',
+        price: Number(productForm.price || 0),
+        discount: Number(productForm.discount || 0),
+        stock: Number(productForm.stock || 0),
+        categoryId: productForm.categoryId || '',
+        rating: Number(productForm.rating || 0),
+        available: productForm.available !== false,
+      };
+
+      let next;
+      if (editingProductDocId) {
+        await updateDoc(doc(db, 'products', editingProductDocId), { ...payload, updatedAt: now, updatedBy: actor });
+        next = products.map((item) =>
+          item._docId === editingProductDocId ? { ...item, ...payload, updatedAt: now, updatedBy: actor } : item,
+        );
+      } else {
+        const createPayload = { ...payload, createdAt: now, createdBy: actor };
+        const ref = await addDoc(collection(db, 'products'), createPayload);
+        next = [{ _docId: ref.id, ...createPayload }, ...products];
+      }
+
+      setProducts(next);
+      setEditingProductDocId(null);
+      setProductForm({
+        id: nextProductId,
+        name: '',
+        description: '',
+        image: '',
+        price: '',
+        discount: '0',
+        stock: '0',
+        categoryId: categories[0]?.id || '',
+        rating: '0',
+        available: true,
+      });
+      setProductFile([]);
+      setCoverImageId(null);
+      const message = editingProductDocId ? 'Product updated successfully! ✅' : 'Product added successfully! ✅';
+      showSuccess(message);
+      setStatus(message);
+    } catch (error) {
+      console.error('Product error:', error);
+      showError('Failed to save product. Please try again.');
+      setStatus('Failed to save product.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleEditProduct = (item) => {
     setEditingProductDocId(item._docId);
     setProductForm({
@@ -618,17 +344,15 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
       name: item.name || '',
       description: item.description || '',
       image: item.image || '',
-      price: item.price || '0',
+      price: item.price || '',
       discount: item.discount || '0',
       stock: item.stock || '0',
-      categoryId: item.categoryId || '',
+      categoryId: item.categoryId || categories[0]?.id || '',
       rating: item.rating || '0',
       available: item.available !== false,
     });
-    setImageOrder([]);
-    setCoverImageId('');
     setProductFile([]);
-    setStatus(`Editing product: ${item.name || item.id}`);
+    setStatus(`Editing product: ${item.name}`);
   };
 
   const handleDeleteProduct = (item) => {
@@ -640,7 +364,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
         if (editingProductDocId === item._docId) {
           setEditingProductDocId(null);
           setProductForm({
-            id: generateNextProductId(next),
+            id: nextProductId,
             name: '',
             description: '',
             image: '',
@@ -652,8 +376,6 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
             available: true,
           });
           setProductFile([]);
-          setImageOrder([]);
-          setCoverImageId('');
         }
         const message = `Product "${item.name}" deleted successfully! 🗑️`;
         showSuccess(message);
@@ -669,17 +391,16 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   const savePaymentDetail = async (e) => {
     e.preventDefault();
     if (!paymentForm.area_name.trim()) {
-      setStatus('area_name is required.');
+      setStatus('Area name is required.');
       return;
     }
-
     setBusy(true);
     setStatus('Saving payment details...');
     try {
       const now = new Date().toISOString();
       const payload = {
         area_name: paymentForm.area_name.trim(),
-        charge: paymentForm.charge,
+        charge: Number(paymentForm.charge || 0),
         contact_number: paymentForm.contact_number.trim(),
         COD_instructions: paymentForm.COD_instructions.trim(),
         bKash_instructions: paymentForm.bKash_instructions.trim(),
@@ -692,7 +413,6 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           updatedAt: now,
           updatedBy: actor,
         });
-
         next = paymentDetails.map((item) =>
           item._docId === editingPaymentDocId
             ? { ...item, ...payload, updatedAt: now, updatedBy: actor }
@@ -713,7 +433,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
         COD_instructions: '',
         bKash_instructions: '',
       });
-      
+
       const message = editingPaymentDocId ? 'Payment details updated successfully! ✅' : 'Payment details added successfully! ✅';
       showSuccess(message);
       setStatus(message);
@@ -817,7 +537,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
       setEditingBannerDocId(null);
       setBannerForm({ no: generateNextBannerNo(next), imageUrl: '', description: '', show: true });
       setBannerFile(null);
-      
+
       const message = editingBannerDocId ? 'Banner updated successfully! ✅' : 'Banner added successfully! ✅';
       showSuccess(message);
       setStatus(message);
@@ -869,117 +589,99 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   };
 
   return (
-    <section className="catalog-admin-page">
-      <header className="catalog-admin-header" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <button
-          type="button"
-          className="btn"
-          style={{ order: 0 }}
-          onClick={() => {
-            if (window.history.length > 1) {
-              window.history.back();
-            } else {
-              window.location.href = '/';
-            }
-          }}
-        >
-          Back
-        </button>
-        <h2 style={{ margin: 0, flex: 1, textAlign: 'left' }}>Catalog Manager</h2>
-        <div style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0' }}>
+    <section className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 pb-20">
+      {/* Header */}
+      <header className="sticky top-0 z-40 w-full bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-900 dark:to-blue-800 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
           <button
             type="button"
-            className={`btn${activeSection === 'categories' ? ' primary' : ''}`}
-            onClick={() => setActiveSection('categories')}
-            style={{ minWidth: 120 }}
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.href = '/';
+              }
+            }}
+            className="p-2 hover:bg-blue-700 rounded-lg transition-colors active:scale-95 text-white"
+            title="Go back"
           >
-            Add Category
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
           </button>
-          <button
-            type="button"
-            className={`btn${activeSection === 'products' ? ' primary' : ''}`}
-            onClick={() => setActiveSection('products')}
-            style={{ minWidth: 120 }}
-          >
-            Add Product
-          </button>
-        </div>
-        <div className="catalog-admin-settings-wrap" ref={settingsRef}>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setSettingsOpen((v) => !v)}
-            aria-expanded={settingsOpen}
-            aria-haspopup="menu"
-          >
-            Settings
-          </button>
-          {settingsOpen ? (
-            <div className="catalog-admin-settings-menu" role="menu">
-              <button
-                type="button"
-                className="btn settings-menu-btn"
-                onClick={() => {
-                  setActiveSection('categories');
-                  setSettingsOpen(false);
-                }}
-                role="menuitem"
-              >
-                Categories Page
-              </button>
-              <button
-                type="button"
-                className="btn settings-menu-btn"
-                onClick={() => {
-                  setActiveSection('products');
-                  setSettingsOpen(false);
-                }}
-                role="menuitem"
-              >
-                Add Product Page
-              </button>
-              <button
-                type="button"
-                className="btn settings-menu-btn"
-                onClick={() => {
-                  setActiveSection('payment');
-                  setSettingsOpen(false);
-                }}
-                role="menuitem"
-              >
-                Payment Details
-              </button>
-              <button
-                type="button"
-                className="btn settings-menu-btn"
-                onClick={() => {
-                  setActiveSection('banners');
-                  setSettingsOpen(false);
-                }}
-                role="menuitem"
-              >
-                Banner Page
-              </button>
-              <button
-                type="button"
-                className="btn settings-menu-btn"
-                onClick={() => {
-                  setSettingsOpen(false);
-                  onOpenOrders?.();
-                }}
-                role="menuitem"
-              >
-                Orders Page
-              </button>
+          <h1 className="flex-1 text-xl sm:text-2xl font-bold text-white text-center sm:text-left">Catalog Manager</h1>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="text-xs sm:text-sm text-blue-100">
+              {products.length} products
             </div>
-          ) : null}
+          </div>
         </div>
       </header>
 
-      {status ? <div className="catalog-admin-status">{status}</div> : null}
-      {loadingData ? <div className="catalog-admin-status">Loading data from Firebase...</div> : null}
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        {/* Tab Navigation */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => setActiveSection('categories')}
+            className={`py-3 px-3 sm:px-4 rounded-lg font-medium transition-all active:scale-95 ${
+              activeSection === 'categories'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-md'
+            }`}
+          >
+            <div className="hidden sm:inline">📁 Categories</div>
+            <div className="sm:hidden">Categories</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('products')}
+            className={`py-3 px-3 sm:px-4 rounded-lg font-medium transition-all active:scale-95 ${
+              activeSection === 'products'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-md'
+            }`}
+          >
+            <div className="hidden sm:inline">🛍️ Products</div>
+            <div className="sm:hidden">Products</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('banners')}
+            className={`py-3 px-3 sm:px-4 rounded-lg font-medium transition-all active:scale-95 ${
+              activeSection === 'banners'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-md'
+            }`}
+          >
+            <div className="hidden sm:inline">🎨 Banners</div>
+            <div className="sm:hidden">Banners</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('payment')}
+            className={`py-3 px-3 sm:px-4 rounded-lg font-medium transition-all active:scale-95 ${
+              activeSection === 'payment'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-md'
+            }`}
+          >
+            <div className="hidden sm:inline">💳 Payment</div>
+            <div className="sm:hidden">Payment</div>
+          </button>
+        </div>
 
-      <div className="catalog-admin-grid">
+        {/* Status Message */}
+        {status && (
+          <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900 border-l-4 border-blue-600 text-blue-900 dark:text-blue-100 rounded-lg shadow-sm">
+            <p className="text-sm font-medium">{status}</p>
+          </div>
+        )}
+
+        {loadingData ? <div className="catalog-admin-status">Loading data from Firebase...</div> : null}
+
+        <div className="catalog-admin-grid">
         {activeSection === 'categories' ? (
         <>
           {/* Mobile View Toggle Button */}
@@ -1550,6 +1252,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           </div>
         </form>
         ) : null}
+        </div>
       </div>
 
       {/* Success/Error Popup */}

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import './admin.css';
 
 // Simple localStorage cache helpers
 const ADMIN_CACHE_KEYS = {

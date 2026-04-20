@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaBars, FaStore } from 'react-icons/fa';
+import { FaBars, FaStore, FaSearch } from 'react-icons/fa';
 import { FiShoppingCart, FiUser, FiHeart, FiChevronRight, FiArrowRight, FiLogIn, FiGrid } from 'react-icons/fi';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { addToCart, getCartState, isProductInCart, loadCart, subscribeCart } from '../bstoreapp/cardManager';
 import { createBannerItem, createCategory, createProduct, getDiscountedUnitPrice } from '../bstoreapp/models';
 import { autoPreloadProducts } from '../bstoreapp/imageCache';
@@ -11,39 +11,22 @@ import logo from '../bstoreapp/assets/images/logo.png';
 import StoreHeader from './header/header';
 import './user.css';
 
-const CACHE_KEYS = {
-  categories: 'bstoreapp-categories',
-  products: 'bstoreapp-products',
-  banners: 'bstoreapp-banners',
-  notice: 'bstoreapp-notice',
-};
-
 function readCache(key, mapper = item => item) {
-  try {
-    const raw = localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.map(mapper) : [];
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 function writeCache(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    console.warn('Failed to write to cache', e);
-  }
+  // Disabled - no caching
 }
 
 function ProductCardSkeleton({ index }) {
   return (
-    <div className="pro-product-card pro-skeleton" key={index}>
-      <div className="pro-product-image-shell pro-skeleton-block" />
-      <div className="pro-product-info">
-        <div className="pro-skeleton-line pro-skeleton-line--sm" />
-        <div className="pro-skeleton-line" />
-        <div className="pro-skeleton-line pro-skeleton-line--sm" />
+    <div className="bg-white rounded-xl overflow-hidden shadow-sm animate-pulse" key={index}>
+      <div className="h-40 bg-gradient-to-br from-gray-200 to-gray-300" />
+      <div className="p-3 space-y-2">
+        <div className="h-3 bg-gray-300 rounded w-3/4" />
+        <div className="h-3 bg-gray-300 rounded w-1/2" />
+        <div className="h-8 bg-gray-300 rounded" />
       </div>
     </div>
   );
@@ -52,6 +35,7 @@ function ProductCardSkeleton({ index }) {
 export default function HomePage({
   currentUser,
   onOpenCart,
+  onOpenCategories,
   onOpenProduct,
   onOpenPosterBuilder,
   onOpenPosterHistory,
@@ -66,19 +50,15 @@ export default function HomePage({
   onOpenSellerOrders,
   onOpenWishlist,
 }) {
-  const [categories, setCategories] = useState(() => readCache(CACHE_KEYS.categories, createCategory));
-  const [products, setProducts] = useState(() => readCache(CACHE_KEYS.products, createProduct));
-  const [banners, setBanners] = useState(() => readCache(CACHE_KEYS.banners, createBannerItem));
-  const [noticeText, setNoticeText] = useState(() => localStorage.getItem(CACHE_KEYS.notice) ?? '');
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [noticeText, setNoticeText] = useState('');
 
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(() => {
-    const cachedProds = localStorage.getItem(CACHE_KEYS.products);
-    return !cachedProds || cachedProds === '[]';
-  });
+  const [loading, setLoading] = useState(false);
 
-  const [offline, setOffline] = useState(false);
   const [cartState, setCartState] = useState(() => loadCart());
   const [clickedProductId, setClickedProductId] = useState(null);
   const [activeBanner, setActiveBanner] = useState(0);
@@ -88,21 +68,26 @@ export default function HomePage({
   const [searchFocused, setSearchFocused] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
-  const [popupType, setPopupType] = useState('success'); // 'success' or 'warning'
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('pro-dark-mode');
-    return saved === 'true';
-  });
+  const [popupType, setPopupType] = useState('success');
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const handleOpenDrawer = () => setIsDrawerOpen(true);
+    window.addEventListener('open-drawer', handleOpenDrawer);
+    return () => {
+      window.removeEventListener('open-drawer', handleOpenDrawer);
+    };
+  }, []);
 
   const clickAnimationTimerRef = useRef(null);
   const cartHotTimerRef = useRef(null);
   const cartButtonRef = useRef(null);
   const popupTimerRef = useRef(null);
+  const categoriesScrollRef = useRef(null);
 
   function toggleDarkMode() {
     const newMode = !darkMode;
     setDarkMode(newMode);
-    localStorage.setItem('pro-dark-mode', newMode);
   }
 
   function handleProductCardClick(productId) {
@@ -155,10 +140,8 @@ export default function HomePage({
       return;
     }
 
-    // Check if product is already in cart
     if (isProductInCart(product)) {
-      // Show popup notification
-      setPopupMessage('This product is already in your cart!');
+      setPopupMessage('Already in your cart!');
       setPopupType('warning');
       setShowPopup(true);
       
@@ -177,8 +160,7 @@ export default function HomePage({
       return;
     }
 
-    // Show success popup
-    setPopupMessage(`${product.name} added to cart!`);
+    setPopupMessage(`${product.name} added!`);
     setPopupType('success');
     setShowPopup(true);
     
@@ -210,6 +192,48 @@ export default function HomePage({
   }, []);
 
   useEffect(() => {
+    const container = categoriesScrollRef.current;
+    if (!container || window.innerWidth > 768) return;
+
+    const scrollAmount = container.scrollWidth / categories.length;
+    let direction = 1;
+    let isUserScrolling = false;
+    let userScrollTimeout;
+
+    const autoScroll = () => {
+      if (isUserScrolling) return;
+
+      if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 5) {
+        direction = -1;
+      } else if (container.scrollLeft <= 5) {
+        direction = 1;
+      }
+
+      container.scrollLeft += direction * 1;
+    };
+
+    const handleUserScroll = () => {
+      isUserScrolling = true;
+      clearTimeout(userScrollTimeout);
+      userScrollTimeout = setTimeout(() => {
+        isUserScrolling = false;
+      }, 3000);
+    };
+
+    container.addEventListener('wheel', handleUserScroll, { passive: true });
+    container.addEventListener('touchstart', handleUserScroll, { passive: true });
+
+    const interval = setInterval(autoScroll, 30);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(userScrollTimeout);
+      container.removeEventListener('wheel', handleUserScroll);
+      container.removeEventListener('touchstart', handleUserScroll);
+    };
+  }, [categories.length]);
+
+  useEffect(() => {
     if (banners.length <= 1) {
       setActiveBanner(0);
       return undefined;
@@ -233,64 +257,72 @@ export default function HomePage({
   useEffect(() => {
     let ignore = false;
 
-    async function loadData() {
-      if (products.length === 0 && categories.length === 0) {
-        setLoading(true);
-      }
+    setLoading(true);
 
-      try {
-        const [categorySnap, productSnap, bannerSnap, noticeSnap] = await Promise.all([
-          getDocs(collection(db, 'categories')),
-          getDocs(collection(db, 'products')),
-          getDocs(collection(db, 'banners')),
-          getDocs(collection(db, 'notices')),
-        ]);
-
+    const unsubscribeCategories = onSnapshot(
+      collection(db, 'categories'),
+      (snapshot) => {
         if (ignore) return;
-
-        const categoryData = categorySnap.docs.map(docSnap => docSnap.data());
-        const productData = productSnap.docs.map(docSnap => docSnap.data());
-        const bannerData = bannerSnap.docs.map(docSnap => docSnap.data());
-        const noticeData = noticeSnap.docs.map(docSnap => docSnap.data());
-
+        const categoryData = snapshot.docs.map(docSnap => docSnap.data());
         const nextCategories = Array.isArray(categoryData) ? categoryData.map(createCategory) : [];
+        setCategories(nextCategories);
+      },
+      (error) => {
+        console.error('Error listening to categories:', error);
+      }
+    );
+
+    const unsubscribeProducts = onSnapshot(
+      collection(db, 'products'),
+      (snapshot) => {
+        if (ignore) return;
+        const productData = snapshot.docs.map(docSnap => docSnap.data());
         const nextProducts = Array.isArray(productData) ? productData.map(createProduct) : [];
+        setProducts(nextProducts);
+        autoPreloadProducts(nextProducts);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error listening to products:', error);
+        setLoading(false);
+      }
+    );
+
+    const unsubscribeBanners = onSnapshot(
+      collection(db, 'banners'),
+      (snapshot) => {
+        if (ignore) return;
+        const bannerData = snapshot.docs.map(docSnap => docSnap.data());
         const nextBanners = Array.isArray(bannerData)
           ? bannerData.map(createBannerItem).filter(item => item && item.show)
           : [];
+        setBanners(nextBanners);
+      },
+      (error) => {
+        console.error('Error listening to banners:', error);
+      }
+    );
 
+    const unsubscribeNotices = onSnapshot(
+      collection(db, 'notices'),
+      (snapshot) => {
+        if (ignore) return;
+        const noticeData = snapshot.docs.map(docSnap => docSnap.data());
         const noticeObj = Array.isArray(noticeData) && noticeData[0] ? noticeData[0] : {};
         const nextNotice = noticeObj.Notice ?? noticeObj.notice ?? noticeObj.text ?? noticeObj.title ?? '';
-
-        setCategories(nextCategories);
-        setProducts(nextProducts);
-        setBanners(nextBanners);
         setNoticeText(nextNotice);
-        setOffline(false);
-
-        writeCache(CACHE_KEYS.categories, nextCategories);
-        writeCache(CACHE_KEYS.products, nextProducts);
-        writeCache(CACHE_KEYS.banners, nextBanners);
-        localStorage.setItem(CACHE_KEYS.notice, nextNotice);
-
-        // Auto-preload all product images in background for fast loading
-        autoPreloadProducts(nextProducts);
-      } catch (error) {
-        console.error("Error loading store data:", error);
-        if (!ignore) {
-          setOffline(true);
-          if (products.length === 0) setLoading(false);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
+      },
+      (error) => {
+        console.error('Error listening to notices:', error);
       }
-    }
+    );
 
-    loadData();
     return () => {
       ignore = true;
+      unsubscribeCategories();
+      unsubscribeProducts();
+      unsubscribeBanners();
+      unsubscribeNotices();
     };
   }, []);
 
@@ -310,14 +342,6 @@ export default function HomePage({
     );
   }, [products, searchQuery, selectedCategory]);
 
-  const featuredProducts = useMemo(() => {
-    return products.filter(p => p.discount > 0).slice(0, 8);
-  }, [products]);
-
-  const newProducts = useMemo(() => {
-    return [...products].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 8);
-  }, [products]);
-
   const drawerUserName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Guest User';
   const drawerUserEmail = currentUser?.email || 'Please login to continue';
   const drawerAvatarText = (drawerUserName || 'G').slice(0, 1).toUpperCase();
@@ -326,8 +350,7 @@ export default function HomePage({
     : 'Guest';
 
   return (
-    <div className={`pro-store-page ${darkMode ? 'pro-dark-mode' : ''}`}>
-      {/* Inline Styles */}
+    <div className={`flex flex-col min-h-screen ${darkMode ? 'bg-slate-950' : 'bg-gray-50'} transition-colors duration-300`}>
       <style>{`
         .pro-fly-to-cart-dot {
           position: fixed;
@@ -345,30 +368,27 @@ export default function HomePage({
         }
       `}</style>
 
-      {/* ===== POPUP NOTIFICATION ===== */}
+      {/* POPUP NOTIFICATION */}
       {showPopup && (
-        <div className={`pro-popup-notification ${popupType}`}>
-          <div className="pro-popup-content">
-            <div className="pro-popup-logo pro-popup-logo-large">
-              <img src={logo} alt="Logo" />
-            </div>
-            <div className="pro-popup-body">
-              <div className={`pro-popup-icon ${popupType}`}>
-                {popupType === 'success' ? '✓' : '⚠'}
-              </div>
-              <p className="pro-popup-message">{popupMessage}</p>
-            </div>
-            <button 
-              className="pro-popup-close"
-              onClick={() => setShowPopup(false)}
-            >
-              ×
-            </button>
+        <div className={`fixed top-4 right-4 left-4 z-50 p-4 rounded-xl shadow-xl flex items-center gap-3 animate-fade-in ${
+          popupType === 'success' 
+            ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+            : 'bg-gradient-to-r from-yellow-500 to-orange-500'
+        } text-white`}>
+          <div className="text-2xl flex-shrink-0">
+            {popupType === 'success' ? '✓' : '⚠'}
           </div>
+          <p className="font-medium flex-1">{popupMessage}</p>
+          <button 
+            className="text-xl hover:opacity-70 flex-shrink-0"
+            onClick={() => setShowPopup(false)}
+          >
+            ×
+          </button>
         </div>
       )}
 
-      {/* ===== TOP NAVIGATION ===== */}
+      {/* HEADER */}
       <StoreHeader
         logo={logo}
         currentUser={currentUser}
@@ -381,30 +401,167 @@ export default function HomePage({
         isCartHot={isCartHot}
         toggleDarkMode={toggleDarkMode}
         darkMode={darkMode}
-        onSearch={() => {}}
+        searchFocused={searchFocused}
+        onSearchFocusChange={setSearchFocused}
       />
 
-      {/* Category Navigation Bar */}
+      {/* NEWS TICKER */}
+      <div className={`${darkMode ? 'bg-slate-800' : 'bg-blue-50'} border-b ${darkMode ? 'border-slate-700' : 'border-blue-200'} py-2 overflow-hidden`}>
+        <div className="animate-scroll text-center text-xs sm:text-sm font-semibold text-blue-600 whitespace-nowrap px-2">
+          {noticeText ? noticeText : (categories.length ? categories.map(c => c.name).join(' • ') : 'Welcome to our store!')}
+        </div>
+      </div>
+
+      {/* SIDE DRAWER BACKDROP */}
+      {isDrawerOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsDrawerOpen(false)}
+        />
+      )}
+
+      {/* SIDE DRAWER */}
+      <aside className={`fixed left-0 top-0 h-full w-72 max-w-[85vw] ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-2xl transform transition-transform duration-300 z-50 overflow-y-auto flex flex-col ${
+        isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex-shrink-0">
+          <div className="flex items-center gap-3 mb-4">
+            {currentUser?.photoURL ? (
+              <img src={currentUser.photoURL} alt={drawerUserName} className="w-12 h-12 rounded-full border-2 border-white" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-white text-blue-600 flex items-center justify-center font-bold text-lg">
+                {drawerAvatarText}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm truncate">{drawerUserName}</p>
+              <p className="text-xs opacity-90 truncate">{drawerUserEmail}</p>
+              <span className="inline-block mt-1 text-xs bg-white text-blue-600 px-2 py-0.5 rounded font-bold">
+                {drawerRoleLabel}
+              </span>
+            </div>
+          </div>
+          <button
+            className="absolute top-4 right-4 text-2xl hover:opacity-70 p-2"
+            onClick={() => setIsDrawerOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          <button onClick={() => { setIsDrawerOpen(false); onOpenProfile?.(); }} className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-100 dark:hover:bg-slate-700 flex items-center gap-3 font-medium transition-colors">
+            <FiUser className="flex-shrink-0" /> My Profile
+          </button>
+          {currentUser && (
+            <button onClick={() => { setIsDrawerOpen(false); onOpenOrders?.(); }} className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-100 dark:hover:bg-slate-700 flex items-center gap-3 font-medium transition-colors">
+              <FiGrid className="flex-shrink-0" /> My Orders
+            </button>
+          )}
+          <button onClick={() => { setIsDrawerOpen(false); onOpenWishlist?.(); }} className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-100 dark:hover:bg-slate-700 flex items-center gap-3 font-medium transition-colors">
+            <FiHeart className="flex-shrink-0" /> Wishlist
+          </button>
+          {canOpenCatalogManager && (
+            <button onClick={() => { setIsDrawerOpen(false); onOpenCatalogManager?.(); }} className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-100 dark:hover:bg-slate-700 flex items-center gap-3 font-medium transition-colors">
+              <FiGrid className="flex-shrink-0" /> Catalog Manager
+            </button>
+          )}
+          {canOpenAdminDashboard && (
+            <button onClick={() => { setIsDrawerOpen(false); onOpenAdminDashboard?.(); }} className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-100 dark:hover:bg-slate-700 flex items-center gap-3 font-medium transition-colors">
+              <FiGrid className="flex-shrink-0" /> Admin Dashboard
+            </button>
+          )}
+          <button onClick={() => { setIsDrawerOpen(false); onOpenCart(); }} className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-100 dark:hover:bg-slate-700 flex items-center gap-3 font-medium transition-colors">
+            <FiShoppingCart className="flex-shrink-0" /> Shopping Cart
+          </button>
+        </nav>
+
+        {/* Auth Button */}
+        <div className="p-3 border-t dark:border-slate-700">
+          {currentUser ? (
+            <button className="w-full px-4 py-3 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold flex items-center justify-center gap-2 transition-colors" onClick={() => { setIsDrawerOpen(false); onSignOutUser?.(); }}>
+              <FiLogIn /> Logout
+            </button>
+          ) : (
+            <button className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold flex items-center justify-center gap-2 transition-colors" onClick={() => { setIsDrawerOpen(false); onOpenLogin?.(); }}>
+              <FiLogIn /> Login
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 pb-24">
+        {/* Notice Banner */}
+        {noticeText && (
+          <div className="m-3 p-3 rounded-lg bg-gradient-to-r from-orange-100 to-red-100 border-l-4 border-orange-500 flex items-start gap-2">
+            <span className="text-lg flex-shrink-0 mt-0.5">📢</span>
+            <span className="text-sm text-orange-900 font-medium">{noticeText}</span>
+          </div>
+        )}
+
+        {/* Banner Slider */}
+        {banners.length > 0 && (
+          <div className="mx-3 mb-4 rounded-xl overflow-hidden shadow-md">
+            <div className="relative h-48 sm:h-64 bg-gray-200">
+              {banners.map((banner, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-500 ${
+                    index === activeBanner ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  <ShimmerImage
+                    src={banner.imageUrl}
+                    alt={banner.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+              {banners.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5 z-10">
+                  {banners.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setActiveBanner(index)}
+                      className={`rounded-full transition-all ${
+                        index === activeBanner 
+                          ? 'bg-white w-8 h-2.5' 
+                          : 'bg-white/50 w-2.5 h-2.5'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Categories Section */}
         {categories.length > 0 && (
-          <div className="pro-category-nav">
-            <div className="pro-category-nav-content">
+          <div className="mb-4">
+            <div className="px-3 mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold">Categories</h2>
               <button
-                className={`pro-category-pill ${selectedCategory === 'all' ? 'pro-category-active' : ''}`}
-                onClick={() => setSelectedCategory('all')}
+                onClick={onOpenCategories || (() => setSelectedCategory('all'))}
+                className="text-blue-600 text-sm font-semibold flex items-center gap-1"
               >
-                <FaStore /> All Products
+                View All <FiChevronRight size={14} />
               </button>
+            </div>
+            <div ref={categoriesScrollRef} className="flex gap-2 px-3 pb-2 overflow-x-auto scroll-smooth">
               {categories.map(cat => (
                 <button
                   key={cat.id}
-                  className={`pro-category-pill ${selectedCategory === cat.id ? 'pro-category-active' : ''}`}
                   onClick={() => setSelectedCategory(cat.id)}
+                  className={`flex-shrink-0 px-3 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-all ${
+                    selectedCategory === cat.id
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
+                      : `${darkMode ? 'bg-slate-700 text-gray-200' : 'bg-gray-200 text-gray-700'} hover:shadow-md`
+                  }`}
                 >
-                  {cat.iconUrl ? (
-                    <img src={cat.iconUrl} alt={cat.name} className="pro-category-icon" />
-                  ) : (
-                    <FaStore />
-                  )}
                   {cat.name}
                 </button>
               ))}
@@ -412,287 +569,92 @@ export default function HomePage({
           </div>
         )}
 
-      {/* ===== SIDE DRAWER ===== */}
-      <div
-        className={`pro-drawer-backdrop ${isDrawerOpen ? 'pro-drawer-backdrop-show' : ''}`}
-        onClick={() => setIsDrawerOpen(false)}
-      />
-      <aside className={`pro-drawer ${isDrawerOpen ? 'pro-drawer-open' : ''}`}>
-        <div className="pro-drawer-header">
-          <div className="pro-drawer-user">
-            <div className="pro-drawer-avatar">
-              {currentUser?.photoURL ? (
-                <img src={currentUser.photoURL} alt={drawerUserName} />
+        {/* Products Grid */}
+        <div className="px-3">
+          <h2 className="text-lg font-bold mb-3">
+            {selectedCategory === 'all' ? 'All Products' : `${categories.find(c => c.id === selectedCategory)?.name || 'Products'}`}
+          </h2>
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {[...Array(8)].map((_, i) => <ProductCardSkeleton key={i} index={i} />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {filteredProducts.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <FaSearch className="text-4xl text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">No products found</p>
+                  <button 
+                    onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
+                    className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               ) : (
-                <span>{drawerAvatarText}</span>
+                filteredProducts.map(product => {
+                  const mainImage = product.image ? product.image.split(',')[0]?.trim() : product.imageUrl;
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => { handleProductCardClick(product.id); onOpenProduct(product); }}
+                      className={`bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer ${
+                        clickedProductId === product.id ? 'scale-95' : 'hover:scale-105'
+                      }`}
+                    >
+                      {/* Image */}
+                      <div className="relative h-40 bg-gray-100 overflow-hidden">
+                        <ShimmerImage
+                          src={mainImage}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {product.discount > 0 && (
+                          <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white px-2 py-1 rounded-lg text-xs font-bold shadow-md">
+                            -{product.discount}%
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-3 flex flex-col">
+                        <h3 className="font-semibold text-sm mb-2 line-clamp-2 text-gray-800">{product.name}</h3>
+                        
+                        {/* Price */}
+                        <div className="mb-3">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-lg font-bold text-blue-600">
+                              ৳{getDiscountedUnitPrice(product).toFixed(0)}
+                            </span>
+                            {product.discount > 0 && (
+                              <span className="text-xs text-gray-500 line-through">
+                                ৳{Number(product.price || product.unitPrice).toFixed(0)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Button */}
+                        {currentUser && (
+                          <button
+                            onClick={(e) => handleAddToCart(product, e)}
+                            className={`w-full py-2 rounded-lg font-semibold text-sm transition-all ${
+                              isProductInCart(product)
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-md active:scale-95'
+                            }`}
+                          >
+                            {isProductInCart(product) ? '✓ In Cart' : 'Add To Cart'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
-            <div className="pro-drawer-user-info">
-              <strong>{drawerUserName}</strong>
-              <small>{drawerUserEmail}</small>
-              <span className="pro-drawer-role">{drawerRoleLabel}</span>
-            </div>
-          </div>
-          <button className="pro-drawer-close" onClick={() => setIsDrawerOpen(false)}>×</button>
+          )}
         </div>
-
-        <nav className="pro-drawer-nav">
-          <button onClick={() => { setIsDrawerOpen(false); onOpenProfile?.(); }}>
-            <FiUser /> My Profile
-          </button>
-          {currentUser && (
-            <button onClick={() => { setIsDrawerOpen(false); onOpenOrders?.(); }}>
-              <FiGrid /> My Orders
-            </button>
-          )}
-          <button onClick={() => { setIsDrawerOpen(false); onOpenWishlist?.(); }}>
-            <FiHeart /> Wishlist
-          </button>
-          {canOpenCatalogManager && (
-            <button onClick={() => { setIsDrawerOpen(false); onOpenCatalogManager?.(); }}>
-              <FiGrid /> Catalog Manager
-            </button>
-          )}
-          {canOpenAdminDashboard && (
-            <button onClick={() => { setIsDrawerOpen(false); onOpenAdminDashboard?.(); }}>
-              <FiGrid /> Admin Dashboard
-            </button>
-          )}
-          <button onClick={() => { setIsDrawerOpen(false); onOpenCart(); }}>
-            <FiShoppingCart /> Shopping Cart
-          </button>
-          {currentUser ? (
-            <button className="pro-drawer-logout" onClick={() => { setIsDrawerOpen(false); onSignOutUser?.(); }}>
-              <FiLogIn /> Logout
-            </button>
-          ) : (
-            <button className="pro-drawer-login" onClick={() => { setIsDrawerOpen(false); onOpenLogin?.(); }}>
-              <FiLogIn /> Login
-            </button>
-          )}
-        </nav>
-      </aside>
-
-      {/* ===== MAIN CONTENT ===== */}
-      <main className="pro-main-content">
-        {/* Notice Banner */}
-        {noticeText && (
-          <div className="pro-notice-banner">
-            <span className="pro-notice-icon">📢</span>
-            <span className="pro-notice-text">{noticeText}</span>
-          </div>
-        )}
-
-        {/* Offline Notice */}
-        {offline && (
-          <div className="pro-offline-banner">
-            ⚠️ Offline mode: showing cached content.
-          </div>
-        )}
-
-        {/* Hero Banner Slider */}
-        {banners.length > 0 && (
-          <section className="pro-hero-slider pro-hero-full-width">
-            <div
-              className="pro-hero-track"
-              style={{ transform: `translateX(-${activeBanner * (isDesktopSlider ? 50 : 100)}%)` }}
-            >
-              {banners.map((banner, index) => (
-                <div
-                  className={`pro-hero-slide ${isDesktopSlider ? 'pro-hero-slide-desktop' : 'pro-hero-slide-mobile'}`}
-                  key={`${banner.imageUrl}-${index}`}
-                >
-                  <div className="pro-hero-card pro-hero-auto-cover">
-                    <ShimmerImage
-                      src={banner.imageUrl}
-                      alt={banner.description || 'Banner'}
-                      wrapperClassName="pro-hero-image-shell pro-hero-auto-shell"
-                    />
-                    {banner.description && (
-                      <div className="pro-hero-overlay">
-                        <h3>{banner.description}</h3>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {banners.length > 1 && (
-              <div className="pro-hero-dots">
-                {banners.map((banner, index) => (
-                  <button
-                    key={`${banner.imageUrl}-dot-${index}`}
-                    className={`pro-hero-dot ${index === activeBanner ? 'pro-hero-dot-active' : ''}`}
-                    onClick={() => setActiveBanner(index)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-
-        {/* Categories Section */}
-        {categories.length > 0 && (
-          <section className="pro-section pro-categories-section">
-            <div className="pro-section-header">
-              <h2 className="pro-section-title">Shop by Category</h2>
-              <button
-                className="pro-section-link"
-                onClick={() => setSelectedCategory('all')}
-              >
-                View All <FiChevronRight />
-              </button>
-            </div>
-            <div className="pro-categories-grid">
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  className={`pro-category-card ${selectedCategory === cat.id ? 'pro-category-card-active' : ''}`}
-                  onClick={() => setSelectedCategory(cat.id)}
-                >
-                  <div className="pro-category-card-icon">
-                    {cat.iconUrl ? (
-                      <img src={cat.iconUrl} alt={cat.name} />
-                    ) : (
-                      <FaStore />
-                    )}
-                  </div>
-                  <span className="pro-category-card-name">{cat.name}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Featured Products (Discounted) */}
-        {featuredProducts.length > 0 && selectedCategory === 'all' && !searchQuery && (
-          <section className="pro-section pro-featured-section">
-            <div className="pro-section-header">
-              <h2 className="pro-section-title">
-                🔥 Featured Deals
-              </h2>
-              <button className="pro-section-link" onClick={() => {}}>
-                View All <FiChevronRight />
-              </button>
-            </div>
-            <div className="pro-products-scroll">
-              {featuredProducts.map(product => {
-                const mainImage = product.image ? product.image.split(',')[0]?.trim() : '';
-                return (
-                  <article
-                    key={`featured-${product.id}`}
-                    className={`pro-product-card ${clickedProductId === product.id ? 'pro-product-card-clicked' : ''}`}
-                    onClick={() => {
-                      handleProductCardClick(product.id);
-                      onOpenProduct(product);
-                    }}
-                  >
-                    <div className="pro-product-image">
-                      {product.discount > 0 && (
-                        <span className="pro-discount-badge">-{product.discount}%</span>
-                      )}
-                      <ShimmerImage
-                        src={mainImage}
-                        alt={product.name}
-                        wrapperClassName="pro-product-image-shell"
-                      />
-                    </div>
-                    <div className="pro-product-info">
-                      <h3 className="pro-product-name">{product.name}</h3>
-                      <div className="pro-product-prices">
-                        {product.discount > 0 && (
-                          <span className="pro-product-old-price">৳{Number(product.price).toFixed(2)}</span>
-                        )}
-                        <span className="pro-product-price">৳{getDiscountedUnitPrice(product).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* All Products Section */}
-        <section className="pro-section pro-products-section">
-          <div className="pro-section-header">
-            <h2 className="pro-section-title">
-              {selectedCategory === 'all'
-                ? (searchQuery ? `Search: "${searchQuery}"` : 'All Products')
-                : categories.find(c => c.id === selectedCategory)?.name || 'Products'}
-            </h2>
-            <span className="pro-product-count">{filteredProducts.length} items</span>
-          </div>
-
-          {loading ? (
-            <>
-              <div className="pro-loading-banner">
-                <div className="pro-spinner" />
-                <p>Loading products...</p>
-              </div>
-              <div className="pro-products-grid">
-                {Array.from({ length: 8 }).map((_, index) => (
-                  <ProductCardSkeleton key={index} index={index} />
-                ))}
-              </div>
-            </>
-          ) : filteredProducts.length > 0 ? (
-            <div className="pro-products-grid">
-              {filteredProducts.map(product => {
-                const mainImage = product.image ? product.image.split(',')[0]?.trim() : '';
-                return (
-                  <article
-                    key={product.id}
-                    className={`pro-product-card ${clickedProductId === product.id ? 'pro-product-card-clicked' : ''}`}
-                    onClick={() => {
-                      handleProductCardClick(product.id);
-                      onOpenProduct(product);
-                    }}
-                  >
-                    <div className="pro-product-image">
-                      {product.discount > 0 && (
-                        <span className="pro-discount-badge">-{product.discount}%</span>
-                      )}
-                      <ShimmerImage
-                        src={mainImage}
-                        alt={product.name}
-                        wrapperClassName="pro-product-image-shell"
-                      />
-                    </div>
-                    <div className="pro-product-info">
-                      <h3 className="pro-product-name">{product.name}</h3>
-                      <div className="pro-product-prices">
-                        {product.discount > 0 && (
-                          <span className="pro-product-old-price">৳{Number(product.price).toFixed(2)}</span>
-                        )}
-                        <span className="pro-product-price">৳{getDiscountedUnitPrice(product).toFixed(2)}</span>
-                      </div>
-                      {currentUser && (
-                        <button
-                          className={`pro-add-to-cart-btn ${isProductInCart(product) ? 'pro-in-cart' : ''}`}
-                          onClick={(e) => handleAddToCart(product, e)}
-                        >
-                          <FiShoppingCart /> {isProductInCart(product) ? 'In Cart' : 'Add to Cart'}
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="pro-empty-state">
-              <FaSearch className="pro-empty-icon" />
-              <h3>No products found</h3>
-              <p>Try adjusting your search or filter criteria.</p>
-              <button className="pro-empty-cta" onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}>
-                Clear Filters
-              </button>
-            </div>
-          )}
-        </section>
       </main>
     </div>
   );

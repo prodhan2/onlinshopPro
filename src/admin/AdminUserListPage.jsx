@@ -14,7 +14,6 @@ import {
   FiPhone,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
-import './admin.css';
 
 const CACHE_KEY = 'admin-users-page-data';
 

@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { setCartOwner } from './cardManager';
+import { setCartOwner, loadCart, subscribeCart } from './cardManager';
 import HomePage from '../user/homepage';
+import CategoryPage from '../CategoryPage';
 import CartPage from '../user/cartpage';
 import ProductDetailsPage from '../user/detailsshop';
 import PaymentPage from '../user/paymentpage';
 import OrderManagementPage from '../admin/OrderManagement';
 import LoginPage from '../user/login';
 import ProfilePage from '../user/profile';
+import AccountDashboardPage from '../user/AccountDashboard';
 import PosterBuilder from '../posterbuilder/PosterBuilder';
 import PosterHistoryPage from '../posterbuilder/PosterHistoryPage';
 import CatalogAdminPage from '../catalogadmin/CatalogAdminPage';
@@ -26,6 +28,7 @@ import BannerManagement from '../admin/BannerManagement';
 import WishlistPage from '../WishlistPage';
 import NotificationCenter from '../components/NotificationCenter';
 import Footer from '../user/Footer';
+import BottomNav from '../components/BottomNav';
 import { auth, db } from '../firebase';
 import logo from './assets/images/logo.png';
 import '../logo-controller.css';
@@ -39,6 +42,7 @@ export default function BStoreApp() {
   const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isOnAdminPage, setIsOnAdminPage] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -54,6 +58,16 @@ export default function BStoreApp() {
       setCurrentUser(user);
       setCartOwner(user?.uid ?? null);
     });
+  }, []);
+
+  // Subscribe to cart updates
+  useEffect(() => {
+    const unsubscribe = subscribeCart((state) => {
+      setCartItemCount(state?.totalItems || 0);
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -129,6 +143,7 @@ export default function BStoreApp() {
           <HomePage
             currentUser={currentUser}
             onOpenCart={() => navigate('/cart')}
+            onOpenCategories={() => navigate('/categories')}
             onOpenProduct={product => navigate('/details', { state: { product } })}
             onOpenPosterBuilder={() => navigate('/poster-builder')}
             onOpenPosterHistory={() => navigate('/poster-history')}
@@ -158,6 +173,13 @@ export default function BStoreApp() {
             onOpenCart={() => navigate('/cart')}
             onRequireLogin={() => navigate('/login')}
             onBuyNow={checkout => navigate('/payment', { state: { checkout } })}
+          />
+        } />
+        <Route path="/categories" element={
+          <CategoryPage
+            onBackHome={() => navigate('/')}
+            onOpenCart={() => navigate('/cart')}
+            onOpenProduct={product => navigate('/details', { state: { product } })}
           />
         } />
         <Route path="/cart" element={
@@ -190,6 +212,11 @@ export default function BStoreApp() {
             onBack={() => navigate('/')}
             onGoHome={() => navigate('/')}
             onLoggedOut={() => navigate('/')}
+          />
+        } />
+        <Route path="/account" element={
+          <AccountDashboardPage
+            currentUser={currentUser}
           />
         } />
         <Route path="/poster-builder" element={<PosterBuilder />} />
@@ -307,10 +334,15 @@ export default function BStoreApp() {
         </div>
       )}
 
-      {/* Footer - shown on all pages with automatic sidebar adjustment */}
-      <div className={isOnAdminPage ? 'pro-store-footer admin-footer' : 'pro-store-footer'}>
-        <Footer />
-      </div>
+      {/* Footer - only on homepage */}
+      {location.pathname === '/' && (
+        <div className={isOnAdminPage ? 'pro-store-footer admin-footer' : 'pro-store-footer'}>
+          <Footer />
+        </div>
+      )}
+
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNav cartItemCount={cartItemCount} />
     </main>
   );
 }

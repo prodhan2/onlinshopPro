@@ -13,7 +13,6 @@ import {
   FiStar,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
-import './admin.css';
 
 const CACHE_KEY = 'admin-list-page-data';
 

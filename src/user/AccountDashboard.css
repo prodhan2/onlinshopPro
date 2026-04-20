@@ -1,0 +1,477 @@
+/* Account Dashboard Page */
+.account-dashboard-page {
+  padding: 1rem;
+  padding-bottom: 80px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* User Header */
+.account-user-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 16px;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.account-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-user-info h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-user-info p {
+  margin: 0.2rem 0 0 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-edit-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.account-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Stats Grid */
+.account-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.account-stat-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 12px;
+  min-height: 85px;
+  transition: transform 0.2s;
+}
+
+.account-stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.account-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.account-stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.account-stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.account-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+
+/* Sections */
+.account-section {
+  margin-bottom: 1.5rem;
+}
+
+.account-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #1e293b;
+  border-radius: 8px 8px 0 0;
+  color: #fff;
+}
+
+.account-section-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.account-section-link {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.account-section-link:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Orders List */
+.account-orders-list {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.account-order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.account-order-item:last-child {
+  border-bottom: none;
+}
+
+.account-order-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.account-order-id {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.account-order-date {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.account-order-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.account-order-status-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-processing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-shipped {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-delivered {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.account-order-amount {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Wishlist Grid */
+.account-wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 1rem;
+}
+
+.account-wishlist-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  transition: all 0.2s;
+}
+
+.account-wishlist-item:hover {
+  background: #f1f5f9;
+}
+
+.account-wishlist-item img {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.account-wishlist-name {
+  font-size: 0.8rem;
+  color: #1e293b;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.account-wishlist-price {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+/* Empty States */
+.account-empty-box {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 2rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.account-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  gap: 1rem;
+}
+
+.account-empty-state h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.25rem;
+}
+
+.account-empty-state p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.account-btn {
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.account-btn-primary {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.account-btn-primary:hover {
+  background: #2563eb;
+}
+
+/* Dark Mode */
+.pro-dark-mode .account-dashboard-page {
+  background: #0f172a;
+}
+
+.pro-dark-mode .account-user-header {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+}
+
+.pro-dark-mode .account-stat-card {
+  background: #1e293b;
+}
+
+.pro-dark-mode .account-stat-value {
+  color: #e2e8f0;
+}
+
+.pro-dark-mode .account-stat-label {
+  color: #94a3b8;
+}
+
+.pro-dark-mode .account-section-header {
+  background: #1e293b;
+}
+
+.pro-dark-mode .account-orders-list,
+.pro-dark-mode .account-wishlist-grid {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.pro-dark-mode .account-order-item {
+  border-color: #334155;
+}
+
+.pro-dark-mode .account-order-id {
+  color: #e2e8f0;
+}
+
+.pro-dark-mode .account-order-date {
+  color: #94a3b8;
+}
+
+.pro-dark-mode .account-order-amount {
+  color: #e2e8f0;
+}
+
+.pro-dark-mode .account-wishlist-item {
+  background: #0f172a;
+}
+
+.pro-dark-mode .account-wishlist-item:hover {
+  background: #1e293b;
+}
+
+.pro-dark-mode .account-wishlist-name {
+  color: #e2e8f0;
+}
+
+.pro-dark-mode .account-empty-box {
+  background: #1e293b;
+  border-color: #334155;
+  color: #64748b;
+}
+
+.pro-dark-mode .account-empty-state h3 {
+  color: #e2e8f0;
+}
+
+.pro-dark-mode .account-empty-state p {
+  color: #94a3b8;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .account-dashboard-page {
+    padding: 0.75rem;
+  }
+
+  .account-stats-grid {
+    gap: 0.5rem;
+  }
+
+  .account-stat-card {
+    padding: 0.75rem;
+    min-height: 75px;
+  }
+
+  .account-stat-value {
+    font-size: 1.2rem;
+  }
+
+  .account-stat-label {
+    font-size: 0.7rem;
+  }
+
+  .account-user-header {
+    padding: 1rem;
+  }
+
+  .account-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+
+  .account-user-info h2 {
+    font-size: 1rem;
+  }
+
+  .account-user-info p {
+    font-size: 0.8rem;
+  }
+
+  .account-wishlist-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .account-wishlist-item img {
+    height: 70px;
+  }
+}
