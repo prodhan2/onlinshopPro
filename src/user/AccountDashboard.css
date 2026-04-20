@@ -9,6 +9,7 @@
 /* User Header */
 .account-user-header {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 1rem;
   padding: 1.25rem;
@@ -16,6 +17,26 @@
   border-radius: 16px;
   margin-bottom: 1rem;
   color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.account-user-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="80" cy="20" r="40" fill="rgba(255,255,255,0.05)"/><circle cx="10" cy="80" r="30" fill="rgba(255,255,255,0.04)"/></svg>');
+  pointer-events: none;
+}
+
+.account-page-logo {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 0.25rem;
+  filter: drop-shadow(0 10px 24px rgba(15, 23, 42, 0.18));
 }
 
 .account-avatar {
@@ -42,6 +63,8 @@
 .account-user-info {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  text-align: center;
 }
 
 .account-user-info h2 {
@@ -63,6 +86,9 @@
 }
 
 .account-edit-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: #fff;
@@ -449,6 +475,10 @@
 
   .account-user-header {
     padding: 1rem;
+  }
+
+  .account-page-logo {
+    max-width: 260px;
   }
 
   .account-avatar {

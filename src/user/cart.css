@@ -13,7 +13,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: white;
+  background: #e0f2fe;
   padding: 0.875rem 1rem;
   display: flex;
   align-items: center;
@@ -78,6 +78,22 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.cart-watermark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(260px, 62vw);
+  height: auto;
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+  object-fit: contain;
+  z-index: 0;
 }
 
 /* Empty State */
@@ -87,6 +103,8 @@
   padding: 3rem 2rem;
   text-align: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .cart-empty-icon {
@@ -120,6 +138,8 @@
   display: grid;
   gap: 1rem;
   margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .cart-item-card {
@@ -286,6 +306,8 @@
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .cart-summary-card h2 {

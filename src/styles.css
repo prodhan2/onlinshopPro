@@ -819,3 +819,31 @@ textarea {
   margin-left: 2px;
   font-weight: 600;
 }
+
+/* ===== GLOBAL POPUP/MODAL CENTER FIX (mobile) ===== */
+@media (max-width: 768px) {
+  .confirm-dialog-overlay,
+  .catalog-popup-overlay,
+  .catalog-image-zoom-overlay,
+  .logout-modal-overlay,
+  .pro-login-modal-overlay,
+  .pro-popup-notification,
+  .pro-login-success-overlay,
+  .location-modal-overlay,
+  .bstore-modal,
+  .header-search-popup-overlay,
+  .product-modal-overlay-modern {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100dvh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 1rem !important;
+  }
+}

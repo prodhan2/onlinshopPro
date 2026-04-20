@@ -26,6 +26,7 @@ import AdminLayout from '../admin/AdminLayout';
 import SellerDashboardPage from '../admin/SellerDashboardPage';
 import BannerManagement from '../admin/BannerManagement';
 import WishlistPage from '../WishlistPage';
+import SearchPage from '../user/SearchPage';
 import NotificationCenter from '../components/NotificationCenter';
 import Footer from '../user/Footer';
 import BottomNav from '../components/BottomNav';
@@ -203,7 +204,7 @@ export default function BStoreApp() {
         } />
         <Route path="/login" element={
           <LoginPage
-            onSuccess={() => navigate('/profile')}
+            onSuccess={() => navigate('/')}
           />
         } />
         <Route path="/profile" element={
@@ -259,6 +260,7 @@ export default function BStoreApp() {
             currentUser={currentUser}
           />
         } />
+        <Route path="/search" element={<SearchPage />} />
         <Route path="/wishlist" element={<WishlistPage currentUser={currentUser} />} />
         <Route path="/seller-dashboard" element={
           isSeller ? (
@@ -296,8 +298,9 @@ export default function BStoreApp() {
             
             <div className="logout-modal-content">
               <div className="logout-modal-header">
+                <img src={logo} alt="Beautiful Dinajpur" className="logout-modal-logo" />
                 <div className="logout-icon-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                     <polyline points="16 17 21 12 16 7" />
                     <line x1="21" y1="12" x2="9" y2="12" />
@@ -316,18 +319,8 @@ export default function BStoreApp() {
               </div>
 
               <div className="logout-modal-footer">
-                <button
-                  className="btn btn-cancel"
-                  onClick={cancelSignOut}
-                >
-                  বাতিল করুন
-                </button>
-                <button
-                  className="btn btn-logout"
-                  onClick={confirmSignOut}
-                >
-                  হ্যাঁ, লগআউট করুন
-                </button>
+                <button className="btn btn-cancel" onClick={cancelSignOut}>বাতিল করুন</button>
+                <button className="btn btn-logout" onClick={confirmSignOut}>হ্যাঁ, লগআউট করুন</button>
               </div>
             </div>
           </div>

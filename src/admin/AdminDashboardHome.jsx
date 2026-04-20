@@ -11,14 +11,13 @@ import {
   FiDownload,
   FiRefreshCw,
   FiTrendingUp,
-  FiDollarSign,
   FiPackage,
   FiChevronRight,
   FiGrid,
+  FiList,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
 
-// Cache helpers
 const CACHE_KEYS = {
   profiles: 'admin-dashboard-profiles',
   products: 'admin-dashboard-products',
@@ -47,6 +46,7 @@ export default function AdminDashboardHome({ currentUser }) {
   const [orders, setOrders] = useState(() => readCache(CACHE_KEYS.orders, []));
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [navView, setNavView] = useState('grid');
 
   const stats = useMemo(() => {
     const roleCounts = profiles.reduce(
@@ -56,17 +56,18 @@ export default function AdminDashboardHome({ currentUser }) {
         if (acc[role] !== undefined) acc[role] += 1;
         return acc;
       },
-      { total: 0, admin: 0, subadmin: 0, seller: 0, user: 0 }
+      { total: 0, admin: 0, subadmin: 0, seller: 0, user: 0 },
     );
 
     const totalRevenue = orders
-      .filter(o => o.status === 'confirmed' || o.status === 'delivered')
+      .filter((o) => o.status === 'confirmed' || o.status === 'delivered')
       .reduce((sum, o) => sum + Number(o.totalPrice || 0), 0);
 
-    const pendingOrders = orders.filter(o => o.status === 'pending').length;
-    const processingOrders = orders.filter(o => o.status === 'processing').length;
+    const pendingOrders = orders.filter((o) => o.status === 'pending').length;
+    const processingOrders = orders.filter((o) => o.status === 'processing').length;
+    const deliveredOrders = orders.filter((o) => o.status === 'delivered').length;
 
-    return { roleCounts, totalRevenue, pendingOrders, processingOrders };
+    return { roleCounts, totalRevenue, pendingOrders, processingOrders, deliveredOrders };
   }, [profiles, orders]);
 
   async function loadData() {
@@ -78,7 +79,7 @@ export default function AdminDashboardHome({ currentUser }) {
         getDocs(collection(db, 'orders')),
       ]);
 
-      const profileItems = profileSnap.docs.map(d => ({
+      const profileItems = profileSnap.docs.map((d) => ({
         docId: d.id,
         uid: d.data()?.uid || d.id,
         fullName: d.data()?.fullName || d.data()?.displayName || '',
@@ -88,7 +89,7 @@ export default function AdminDashboardHome({ currentUser }) {
         admin: d.data()?.admin || false,
       }));
 
-      const productItems = productSnap.docs.map(d => ({
+      const productItems = productSnap.docs.map((d) => ({
         docId: d.id,
         id: d.data()?.id || d.id,
         name: d.data()?.name || 'Unnamed',
@@ -96,7 +97,7 @@ export default function AdminDashboardHome({ currentUser }) {
         createdByUid: d.data()?.createdBy?.uid || '',
       }));
 
-      const orderItems = orderSnap.docs.map(d => ({
+      const orderItems = orderSnap.docs.map((d) => ({
         docId: d.id,
         userUid: d.data()?.userUid || '',
         userName: d.data()?.userName || '',
@@ -130,7 +131,6 @@ export default function AdminDashboardHome({ currentUser }) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header
     doc.setFillColor(99, 102, 241);
     doc.rect(0, 0, pageWidth, 40, 'F');
     doc.setTextColor(255, 255, 255);
@@ -140,7 +140,6 @@ export default function AdminDashboardHome({ currentUser }) {
     doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 28, { align: 'center' });
     doc.text('Beautiful Dinajpur', pageWidth / 2, 35, { align: 'center' });
 
-    // Content
     doc.setTextColor(0, 0, 0);
     let y = 55;
 
@@ -157,13 +156,12 @@ export default function AdminDashboardHome({ currentUser }) {
       `Regular Users: ${stats.roleCounts.user}`,
       `Total Products: ${products.length}`,
       `Total Orders: ${orders.length}`,
-      `Total Revenue: ৳${stats.totalRevenue.toLocaleString()}`,
-      `Total Revenue: ৳${stats.totalRevenue.toLocaleString()}`,
+      `Total Revenue: Tk ${stats.totalRevenue.toLocaleString()}`,
       `Pending Orders: ${stats.pendingOrders}`,
       `Processing Orders: ${stats.processingOrders}`,
     ];
 
-    lines.forEach(line => {
+    lines.forEach((line) => {
       doc.text(line, 14, y);
       y += 8;
     });
@@ -171,12 +169,12 @@ export default function AdminDashboardHome({ currentUser }) {
     doc.save(`Admin-Dashboard-${new Date().toISOString().split('T')[0]}.pdf`);
   }
 
-  const navCards = [
+  const navItems = [
     {
       title: 'User Management',
       subtitle: 'Manage all platform users',
       icon: FiUsers,
-      color: '#6366f1',
+      color: '#4f46e5',
       route: '/admin-users',
       badge: stats.roleCounts.total,
     },
@@ -184,7 +182,7 @@ export default function AdminDashboardHome({ currentUser }) {
       title: 'Admin List',
       subtitle: 'System administrators',
       icon: FiShield,
-      color: '#f43f5e',
+      color: '#dc2626',
       route: '/admin-list',
       badge: stats.roleCounts.admin + stats.roleCounts.subadmin,
     },
@@ -192,7 +190,7 @@ export default function AdminDashboardHome({ currentUser }) {
       title: 'Role Management',
       subtitle: 'Assign user permissions',
       icon: FiAward,
-      color: '#8b5cf6',
+      color: '#7c3aed',
       route: '/admin-roles',
       badge: 'Edit',
     },
@@ -200,7 +198,7 @@ export default function AdminDashboardHome({ currentUser }) {
       title: 'Sellers',
       subtitle: 'Monitor seller performance',
       icon: FiTrendingUp,
-      color: '#10b981',
+      color: '#059669',
       route: '/admin-sellers',
       badge: stats.roleCounts.seller,
     },
@@ -208,186 +206,191 @@ export default function AdminDashboardHome({ currentUser }) {
       title: 'Orders',
       subtitle: 'Track and manage orders',
       icon: FiShoppingBag,
-      color: '#f59e0b',
+      color: '#d97706',
       route: '/admin-orders',
       badge: orders.length,
     },
     {
       title: 'Analytics',
-      subtitle: 'Revenue & growth data',
+      subtitle: 'Revenue and growth data',
       icon: FiBarChart2,
-      color: '#06b6d4',
+      color: '#0284c7',
       route: '/admin-analytics',
-      badge: '৳' + stats.totalRevenue.toLocaleString(),
+      badge: `Tk ${stats.totalRevenue.toLocaleString()}`,
     },
     {
       title: 'Banner Management',
       subtitle: 'Manage homepage banners',
       icon: FiPackage,
-      color: '#ec4899',
+      color: '#db2777',
       route: '/admin-banners',
       badge: 'Edit',
     },
   ];
 
+  const shortcutActions = [
+    { label: 'Catalog', icon: FiPackage, route: '/catalog-admin' },
+    { label: 'Builder', icon: FiBarChart2, route: '/poster-builder' },
+    { label: 'Orders', icon: FiShoppingBag, route: '/orders' },
+  ];
+
   return (
-    <div className="admin-dashboard-home animate-fade-in space-y-5">
-      {/* Action Header */}
-      <div className="card-header-flex mb-0 rounded-[30px] border border-slate-200/70 bg-[linear-gradient(135deg,#0f172a_0%,#1e3a8a_100%)] p-5 text-white shadow-[0_24px_60px_rgba(15,23,42,0.22)]">
-        <div>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-200">Admin Command</p>
-          <h2 className="admin-page-title" style={{ background: 'none', webkitTextFillColor: 'initial', color: 'white' }}>
+    <div className="admin-dashboard-home admin-dashboard-flat animate-fade-in">
+      <section className="admin-flat-section admin-flat-hero">
+        <div className="admin-flat-hero-copy">
+          <p className="admin-flat-eyebrow">Admin Workspace</p>
+          <h2 className="admin-flat-title">
             Welcome back, {currentUser?.displayName?.split(' ')[0] || 'Admin'}
           </h2>
-          <p className="admin-text-muted" style={{ color: 'rgba(226, 232, 240, 0.8)' }}>Here's what's happening with your store today.</p>
+          <p className="admin-flat-subtitle">
+            Full-width operational overview with simple spacing, crisp typography, and no card feel.
+          </p>
         </div>
-        <div className="admin-header-actions">
-          <button className="btn-modern btn-primary-modern rounded-2xl bg-white text-slate-950 shadow-xl" onClick={loadData} disabled={loading}>
+        <div className="admin-flat-actions">
+          <button type="button" className="admin-flat-action-btn" onClick={loadData} disabled={loading}>
             <FiRefreshCw className={loading ? 'spin' : ''} />
             {loading ? 'Refreshing...' : 'Refresh Data'}
           </button>
-          <button className="btn-modern rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur" onClick={downloadDashboardPDF}>
-            <FiDownload /> Report
+          <button type="button" className="admin-flat-action-btn" onClick={downloadDashboardPDF}>
+            <FiDownload />
+            Report
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* Main Stats Row */}
-      <div className="stats-row">
-        <div className="stat-box rounded-[26px] border border-white/70 bg-white/85 shadow-[0_18px_35px_rgba(148,163,184,0.16)] backdrop-blur">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-            <FiUsers />
-          </div>
-          <div className="stat-info-wrap">
-            <span className="stat-val">{stats.roleCounts.total}</span>
-            <span className="stat-lab">Total Users</span>
-          </div>
-        </div>
-        <div className="stat-box rounded-[26px] border border-white/70 bg-white/85 shadow-[0_18px_35px_rgba(148,163,184,0.16)] backdrop-blur">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-            <FiPackage />
-          </div>
-          <div className="stat-info-wrap">
-            <span className="stat-val">{products.length}</span>
-            <span className="stat-lab">Products</span>
-          </div>
-        </div>
-        <div className="stat-box rounded-[26px] border border-white/70 bg-white/85 shadow-[0_18px_35px_rgba(148,163,184,0.16)] backdrop-blur">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-            <FiShoppingBag />
-          </div>
-          <div className="stat-info-wrap">
-            <span className="stat-val">{orders.length}</span>
-            <span className="stat-lab">Total Orders</span>
-          </div>
-        </div>
-        <div className="stat-box rounded-[26px] border border-white/70 bg-white/85 shadow-[0_18px_35px_rgba(148,163,184,0.16)] backdrop-blur">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4' }}>
-            <FiDollarSign />
-          </div>
-          <div className="stat-info-wrap">
-            <span className="stat-val">৳{stats.totalRevenue.toLocaleString()}</span>
-            <span className="stat-lab">Revenue</span>
-          </div>
-        </div>
-      </div>
+      <div className="admin-flat-divider" />
 
-      {/* Quick Status Section */}
-      <div className="admin-card-modern rounded-[30px] border border-white/70 bg-white/80 shadow-[0_20px_45px_rgba(148,163,184,0.14)] backdrop-blur">
-        <h3 className="h5 mb-4 d-flex align-items-center gap-2">
-          <FiTrendingUp className="text-primary" /> Order Status Overview
-        </h3>
-        <div className="quick-stat-row">
-          <div className="quick-stat quick-stat-pending">
-            <div className="quick-stat-icon"><FiShoppingBag /></div>
-            <div>
-              <div className="quick-stat-value">{stats.pendingOrders}</div>
-              <div className="quick-stat-label">Pending</div>
-            </div>
+      <section className="admin-flat-section">
+        <div className="admin-flat-section-head">
+          <h3 className="admin-flat-section-title">Overview</h3>
+          <p className="admin-flat-section-note">
+            {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Loading latest summary'}
+          </p>
+        </div>
+        <div className="admin-flat-kpi-grid">
+          <div className="admin-flat-kpi-item">
+            <span className="admin-flat-kpi-label">Total Users</span>
+            <strong className="admin-flat-kpi-value">{stats.roleCounts.total}</strong>
           </div>
-          <div className="quick-stat quick-stat-processing">
-            <div className="quick-stat-icon"><FiRefreshCw /></div>
-            <div>
-              <div className="quick-stat-value">{stats.processingOrders}</div>
-              <div className="quick-stat-label">Processing</div>
-            </div>
+          <div className="admin-flat-kpi-item">
+            <span className="admin-flat-kpi-label">Products</span>
+            <strong className="admin-flat-kpi-value">{products.length}</strong>
           </div>
-          <div className="quick-stat quick-stat-delivered">
-            <div className="quick-stat-icon"><FiAward /></div>
-            <div>
-              <div className="quick-stat-value">
-                {orders.filter(o => o.status === 'delivered').length}
-              </div>
-              <div className="quick-stat-label">Delivered</div>
-            </div>
+          <div className="admin-flat-kpi-item">
+            <span className="admin-flat-kpi-label">Orders</span>
+            <strong className="admin-flat-kpi-value">{orders.length}</strong>
           </div>
-          <div className="quick-stat quick-stat-sellers">
-            <div className="quick-stat-icon"><FiUsers /></div>
-            <div>
-              <div className="quick-stat-value">{stats.roleCounts.seller}</div>
-              <div className="quick-stat-label">Active Sellers</div>
-            </div>
+          <div className="admin-flat-kpi-item">
+            <span className="admin-flat-kpi-label">Revenue</span>
+            <strong className="admin-flat-kpi-value">Tk {stats.totalRevenue.toLocaleString()}</strong>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Management Sections Grid */}
-      <h3 className="mt-2 flex items-center gap-2 text-lg font-black text-slate-900">
-        <FiGrid className="text-primary" /> Quick Management
-      </h3>
-      <div className="admin-nav-grid">
-        {navCards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={idx}
-              className="admin-nav-card"
-              onClick={() => navigate(card.route)}
-              style={{ 
-                background: 'white', 
-                border: '1px solid #e2e8f0', 
-                color: 'var(--admin-text-main)',
-                boxShadow: 'var(--admin-shadow)'
-              }}
-            >
-              <div className="admin-nav-card-content" style={{ width: '100%' }}>
-                <div className="d-flex justify-content-between align-items-start mb-3">
-                  <div className="admin-nav-icon" style={{ color: card.color, marginBottom: 0, background: `${card.color}15`, padding: '12px', borderRadius: '12px' }}>
-                    <Icon />
-                  </div>
-                  <span className="admin-nav-badge" style={{ background: `${card.color}15`, color: card.color }}>
-                    {card.badge}
-                  </span>
-                </div>
-                <h3 className="admin-nav-title">{card.title}</h3>
-                <p className="admin-nav-subtitle">{card.subtitle}</p>
-              </div>
-              <div className="admin-nav-card-overlay" style={{ background: 'rgba(0,0,0,0.02)' }}></div>
-            </div>
-          );
-        })}
-      </div>
+      <div className="admin-flat-divider" />
 
-      {/* Footer Quick Access */}
-      <div className="admin-card-modern mt-0 rounded-[30px] border-none shadow-[0_22px_50px_rgba(15,23,42,0.22)]" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', color: 'white', border: 'none' }}>
-        <div className="d-flex justify-content-between align-items-center flex-wrap gap-4">
+      <section className="admin-flat-section">
+        <div className="admin-flat-section-head">
+          <h3 className="admin-flat-section-title">Order Status</h3>
+          <p className="admin-flat-section-note">Current order flow and seller activity</p>
+        </div>
+        <div className="admin-flat-status-list">
+          <div className="admin-flat-status-row">
+            <span className="admin-flat-status-label">Pending</span>
+            <strong className="admin-flat-status-value">{stats.pendingOrders}</strong>
+          </div>
+          <div className="admin-flat-status-row">
+            <span className="admin-flat-status-label">Processing</span>
+            <strong className="admin-flat-status-value">{stats.processingOrders}</strong>
+          </div>
+          <div className="admin-flat-status-row">
+            <span className="admin-flat-status-label">Delivered</span>
+            <strong className="admin-flat-status-value">{stats.deliveredOrders}</strong>
+          </div>
+          <div className="admin-flat-status-row">
+            <span className="admin-flat-status-label">Active Sellers</span>
+            <strong className="admin-flat-status-value">{stats.roleCounts.seller}</strong>
+          </div>
+        </div>
+      </section>
+
+      <div className="admin-flat-divider" />
+
+      <section className="admin-flat-section">
+        <div className="admin-flat-section-head">
           <div>
-            <h3 className="h4 mb-1">System Shortcuts</h3>
-            <p className="mb-0" style={{ opacity: 0.7 }}>Access frequent tools directly.</p>
+            <h3 className="admin-flat-section-title">Quick Management</h3>
+            <p className="admin-flat-section-note">Flat responsive actions in grid or list view</p>
           </div>
-          <div className="d-flex gap-3 flex-wrap">
-            <button className="btn-modern" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => navigate('/catalog-admin')}>
-              <FiPackage /> Catalog
+          <div className="admin-flat-view-switch" aria-label="Switch action layout">
+            <button
+              type="button"
+              className={`admin-flat-view-btn ${navView === 'grid' ? 'active' : ''}`}
+              onClick={() => setNavView('grid')}
+            >
+              <FiGrid />
+              Grid
             </button>
-            <button className="btn-modern" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => navigate('/poster-builder')}>
-              <FiBarChart2 /> Builder
-            </button>
-            <button className="btn-modern" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => navigate('/orders')}>
-              <FiShoppingBag /> Store Orders
+            <button
+              type="button"
+              className={`admin-flat-view-btn ${navView === 'list' ? 'active' : ''}`}
+              onClick={() => setNavView('list')}
+            >
+              <FiList />
+              List
             </button>
           </div>
         </div>
-      </div>
+
+        <div className={`admin-flat-action-list ${navView === 'grid' ? 'is-grid' : 'is-list'}`}>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.route}
+                type="button"
+                className="admin-flat-nav-row"
+                onClick={() => navigate(item.route)}
+              >
+                <span className="admin-flat-nav-icon" style={{ color: item.color }}>
+                  <Icon />
+                </span>
+                <span className="admin-flat-nav-copy">
+                  <span className="admin-flat-nav-title">{item.title}</span>
+                  <span className="admin-flat-nav-subtitle">{item.subtitle}</span>
+                </span>
+                <span className="admin-flat-nav-meta">{item.badge}</span>
+                <FiChevronRight className="admin-flat-nav-arrow" />
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <div className="admin-flat-divider" />
+
+      <section className="admin-flat-section">
+        <div className="admin-flat-section-head">
+          <h3 className="admin-flat-section-title">System Shortcuts</h3>
+          <p className="admin-flat-section-note">Direct access to the tools you open most</p>
+        </div>
+        <div className="admin-flat-shortcuts">
+          {shortcutActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.route}
+                type="button"
+                className="admin-flat-shortcut"
+                onClick={() => navigate(action.route)}
+              >
+                <Icon />
+                <span>{action.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

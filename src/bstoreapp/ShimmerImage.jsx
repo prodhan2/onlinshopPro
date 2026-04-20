@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getCachedImage, cacheImage } from './imageCache';
+import logo from './assets/images/logo.png';
 
 export default function ShimmerImage({ src, alt, className = '', wrapperClassName = '' }) {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -68,14 +69,20 @@ export default function ShimmerImage({ src, alt, className = '', wrapperClassNam
   if (!src) {
     return (
       <div className={`bstore-image-shell is-loaded is-error ${wrapperClassName}`.trim()}>
-        <div className="bstore-image-fallback">No image</div>
+        <div className="bstore-image-fallback">
+          <img src={logo} alt="" className="bstore-image-fallback-logo" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className={`bstore-image-shell ${isLoaded ? 'is-loaded' : ''} ${hasError ? 'is-error' : ''} ${wrapperClassName}`.trim()}>
-      {hasError ? <div className="bstore-image-fallback">Image unavailable</div> : null}
+      {!isLoaded || hasError ? (
+        <div className="bstore-image-fallback">
+          <img src={logo} alt="" className="bstore-image-fallback-logo" />
+        </div>
+      ) : null}
       {imageSrc ? (
         <img
           src={imageSrc}

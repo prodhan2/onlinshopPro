@@ -415,13 +415,13 @@ export default function HomePage({
       {/* SIDE DRAWER BACKDROP */}
       {isDrawerOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="fixed inset-0 bg-black bg-opacity-50 z-[3000]"
           onClick={() => setIsDrawerOpen(false)}
         />
       )}
 
       {/* SIDE DRAWER */}
-      <aside className={`fixed left-0 top-0 h-full w-72 max-w-[85vw] ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-2xl transform transition-transform duration-300 z-50 overflow-y-auto flex flex-col ${
+      <aside className={`fixed left-0 top-0 h-full w-72 max-w-[85vw] ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-2xl transform transition-transform duration-300 z-[3010] overflow-y-auto flex flex-col ${
         isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Header */}

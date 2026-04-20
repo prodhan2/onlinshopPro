@@ -211,6 +211,17 @@
   font-weight: 700;
   text-align: center;
   padding: 0.5rem;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.92) 0%, rgba(237, 242, 247, 0.96) 70%, rgba(226, 232, 240, 0.98) 100%);
+}
+
+.bstore-image-fallback-logo {
+  width: min(72%, 120px);
+  height: auto;
+  object-fit: contain;
+  opacity: 0.28;
+  user-select: none;
+  pointer-events: none;
 }
 
 .bstore-banner-image-shell {
@@ -968,305 +979,7 @@
     bottom: 4%;
   }
 
-  .logout-modal-card {
-    max-width: 94%;
-  }
-}
-
-@media (max-width: 480px) {
-  .bstore-modal__frame,
-  .catalog-popup,
-  .pro-popup-content,
-  .logout-modal-card {
-    width: 98%;
-    padding: 0.4rem;
-  }
-
-  .pro-popup-content {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .pro-popup-logo img {
-    max-width: 56px;
-  }
-
-  .bstore-modal__image {
-    max-height: 50vh;
-  }
-}
-
-.bstore-modal__image {
-  max-height: 80vh;
-  max-width: 100%;
-  width: auto;
-  height: auto;
-  border-radius: 1rem;
-  object-fit: contain;
-  background: #000;
-}
-
-.bstore-modal__close,
-.bstore-modal__counter,
-.bstore-modal__controls {
-  position: absolute;
-}
-
-.bstore-modal__close,
-.bstore-modal__controls button {
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
-  border-radius: 999px;
-  padding: 0.7rem 1rem;
-}
-
-.bstore-modal__close {
-  top: 1rem;
-  right: 1rem;
-}
-
-.bstore-modal__counter {
-  top: 1rem;
-  left: 1rem;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.14);
-  padding: 0.5rem 0.8rem;
-  border-radius: 999px;
-}
-
-.bstore-modal__controls {
-  left: 50%;
-  bottom: 1rem;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 0.75rem;
-}
-
-@keyframes bstoreShimmer {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -20% 0;
-  }
-}
-
-@keyframes bstoreSpin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes bstoreCardPulse {
-  0% {
-    transform: scale(1);
-    box-shadow: var(--bstore-shadow);
-  }
-
-  40% {
-    transform: scale(0.97);
-    box-shadow: 0 10px 24px rgba(21, 101, 192, 0.16);
-  }
-
-  75% {
-    transform: scale(1.02);
-    box-shadow: 0 18px 40px rgba(21, 101, 192, 0.2);
-  }
-
-  100% {
-    transform: scale(1);
-    box-shadow: var(--bstore-shadow);
-  }
-}
-
-@keyframes bstoreBorderFlow {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  100% {
-    background-position: 100% 50%;
-  }
-}
-
-@keyframes bstoreButtonHoverPulse {
-  0% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-2px) scale(1.035);
-  }
-
-  100% {
-    transform: translateY(-2px) scale(1.02);
-  }
-}
-
-@keyframes bstoreButtonSweep {
-  0% {
-    transform: translateX(-180%) skewX(-18deg);
-  }
-
-  100% {
-    transform: translateX(280%) skewX(-18deg);
-  }
-}
-
-@keyframes bstoreChipShimmer {
-  0% {
-    transform: translateX(-140%);
-  }
-
-  55% {
-    transform: translateX(140%);
-  }
-
-  100% {
-    transform: translateX(140%);
-  }
-}
-
-@keyframes bstoreChipGradientFlow {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  100% {
-    background-position: 100% 50%;
-  }
-}
-
-@keyframes bstoreFlyToCart {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 1;
-  }
-
-  60% {
-    transform: translate3d(calc(var(--fly-x) * 0.7), calc(var(--fly-y) * 0.72 - 48px), 0) scale(0.78);
-    opacity: 0.95;
-  }
-
-  100% {
-    transform: translate3d(var(--fly-x), var(--fly-y), 0) scale(0.2);
-    opacity: 0;
-  }
-}
-
-@keyframes bstoreCartHotPulse {
-  0% {
-    transform: scale(1);
-  }
-
-  45% {
-    transform: scale(1.06);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
-@media (max-width: 768px) {
-  .bstore-shell {
-    padding: 1rem;
-  }
-
-  .bstore-card {
-    padding: 1rem;
-  }
-
-  .bstore-cart-image {
-    width: 100%;
-    min-width: 100%;
-    height: 180px;
-  }
-
-  .bstore-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.55rem;
-  }
-
-  .bstore-product-card__body {
-    padding: 0.6rem;
-  }
-
-  .bstore-product-card h3 {
-    font-size: 0.72rem;
-    margin-bottom: 0.2rem;
-  }
-
-  .bstore-product-card .bstore-muted {
-    font-size: 0.62rem;
-    margin-bottom: 0.45rem !important;
-    line-height: 1.2;
-  }
-
-  .bstore-product-card strong {
-    font-size: 0.74rem;
-  }
-
-  .bstore-product-card .badge {
-    font-size: 0.55rem;
-    padding: 0.2rem 0.35rem;
-  }
-
-  .bstore-product-card .btn {
-    font-size: 0.6rem;
-    padding: 0.38rem 0.3rem;
-  }
-
-  .bstore-topbar__title {
-    font-size: 0.8rem;
-  }
-
-  .bstore-appbar__title {
-    font-size: 0.8rem;
-  }
-}
-
-/* ========================================
-   Beautiful Logout Modal Styles
-   ======================================== */
-
-.logout-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 1rem;
-  animation: fadeIn 0.25s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.logout-modal-card {
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 420px;
-  width: 100%;
-  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-  overflow: hidden;
+  .logout-modal-card { background: #ffffff; border-radius: 24px; box-shadow: 0 24px 80px rgba(0,0,0,0.35); max-width: 380px; width: 100%; animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden; }
 }
 
 @keyframes slideUp {
@@ -1309,26 +1022,18 @@
   flex-direction: column;
 }
 
-.logout-modal-header {
-  text-align: center;
-  padding: 2.5rem 2rem 2rem;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  position: relative;
+.logout-modal-header { text-align: center; padding: 2rem 2rem 1.25rem; background: linear-gradient(135deg, #fff1f2 0%, #fce7f3 100%); }
+
+.logout-modal-logo {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 1rem;
 }
 
-.logout-icon-circle {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
-  color: white;
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
-  animation: iconBounce 0.5s ease;
-}
+.logout-icon-circle { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; color: white; box-shadow: 0 8px 24px rgba(239,68,68,0.35); animation: iconBounce 0.5s ease; }
 
 @keyframes iconBounce {
   0% {
@@ -1370,11 +1075,7 @@
   font-weight: 400;
 }
 
-.logout-modal-footer {
-  display: flex;
-  gap: 0.75rem;
-  padding: 0 2rem 2rem;
-}
+.logout-modal-footer { display: flex; gap: 0.75rem; padding: 0 1.5rem 1.75rem; }
 
 .btn-cancel,
 .btn-logout {
@@ -1413,101 +1114,7 @@
 }
 
 /* Responsive Design for Logout Modal */
-@media (max-width: 576px) {
-  .logout-modal-card {
-    max-width: 95%;
-    border-radius: 16px;
-  }
-
-  .logout-icon-circle {
-    width: 70px;
-    height: 70px;
-  }
-
-  .logout-icon-circle svg {
-    width: 36px;
-    height: 36px;
-  }
-
-  .logout-modal-title {
-    font-size: 1.25rem;
-  }
-
-  .logout-message {
-    font-size: 1rem;
-  }
-
-  .logout-hint {
-    font-size: 0.875rem;
-  }
-
-  .logout-modal-footer {
-    flex-direction: column;
-    padding: 0 1.25rem 1.25rem;
-  }
-
-  .btn-cancel,
-  .btn-logout {
-    padding: 0.875rem 1rem;
-  }
-
-  .logout-modal-header {
-    padding: 2rem 1.25rem 1.5rem;
-  }
-
-  .logout-modal-body {
-    padding: 1.25rem;
-  }
-}
-
-/* ========================================
-   Modern Seller Dashboard Styles
-   ======================================== */
-
-/* Loader */
-.seller-dashboard.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.modern-loader {
-  text-align: center;
-}
-
-.loader-spinner {
-  width: 60px;
-  height: 60px;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1.5rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loader-text {
-  color: white;
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-/* Modern Navbar */
-.seller-navbar-modern {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1.25rem 0;
-  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
-  margin-bottom: 2rem;
-  position: relative;
-  overflow: hidden;
-}
-
+@media (max-width: 576px) { .logout-modal-card { max-width: 95%; border-radius: 20px; } .logout-modal-logo { max-width: 220px; } .logout-icon-circle svg { width: 36px; height: 36px; } .logout-modal-title { font-size: 1.1rem; } .logout-message { font-size: 0.95rem; } .logout-hint { font-size: 0.85rem; } .logout-modal-footer { flex-direction: column; padding: 0 1.25rem 1.25rem; } .btn-cancel, .btn-logout { padding: 0.875rem 1rem; } .logout-modal-header { padding: 1.75rem 1.25rem 1.25rem; } .logout-modal-body { padding: 1.25rem; } }
 .seller-navbar-modern::before {
   content: '';
   position: absolute;
@@ -5198,6 +4805,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
+  min-height: 100dvh;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   animation: proPopupFadeIn 0.3s ease-out;
@@ -8306,7 +7915,8 @@
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  padding: 1.5rem;
+  padding: 1rem;
+  min-height: 100dvh;
   animation: pro-login-modal-fade-in 0.3s ease;
 }
 
@@ -9404,6 +9014,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
   animation: catalogPopupFadeIn 0.3s ease-out;
 }
 
@@ -9534,6 +9145,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
   animation: confirmFadeIn 0.2s ease-out;
 }
 

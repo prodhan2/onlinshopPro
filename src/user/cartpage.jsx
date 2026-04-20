@@ -64,6 +64,7 @@ export default function CartPage({ currentUser, onBack, onRequireLogin, onChecko
       </div>
 
       <div className="cart-content">
+        <img src={logo} alt="" className="cart-watermark" />
         {!cartState.items.length ? (
           <div className="cart-empty">
             <div className="cart-empty-icon"><FiShoppingBag /></div>

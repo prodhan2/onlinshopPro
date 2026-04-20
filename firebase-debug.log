@@ -1,0 +1,220 @@
+[debug] [2026-04-20T20:11:40.284Z] ----------------------------------------------------------------------
+[debug] [2026-04-20T20:11:40.292Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\ACER\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-04-20T20:11:40.293Z] CLI Version:   15.14.0
+[debug] [2026-04-20T20:11:40.294Z] Platform:      win32
+[debug] [2026-04-20T20:11:40.294Z] Node Version:  v20.19.5
+[debug] [2026-04-20T20:11:40.294Z] Time:          Tue Apr 21 2026 02:11:40 GMT+0600 (Bangladesh Standard Time)
+[debug] [2026-04-20T20:11:40.295Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-20T20:11:40.302Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-04-20T20:12:46.073Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-20T20:12:46.074Z] > authorizing via signed-in user (ru.cse29@gmail.com)
+[debug] [2026-04-20T20:12:46.075Z] [iam] checking project bdinjapurshop for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-04-20T20:12:46.077Z] Checked if tokens are valid: false, expires at: 1776160882261
+[debug] [2026-04-20T20:12:46.077Z] Checked if tokens are valid: false, expires at: 1776160882261
+[debug] [2026-04-20T20:12:46.078Z] > refreshing access token with scopes: []
+[debug] [2026-04-20T20:12:46.081Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-04-20T20:12:46.081Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-20T20:12:46.313Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-04-20T20:12:46.313Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-20T20:12:46.362Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions [none]
+[debug] [2026-04-20T20:12:46.363Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions  x-goog-user-project=bdinjapurshop
+[debug] [2026-04-20T20:12:46.363Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-20T20:12:46.795Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-04-20T20:12:46.796Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-04-20T20:12:47.700Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions 200
+[debug] [2026-04-20T20:12:47.701Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-20T20:12:47.702Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:47.702Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:47.703Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/bdinjapurshop [none]
+[debug] [2026-04-20T20:12:48.337Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/bdinjapurshop 200
+[debug] [2026-04-20T20:12:48.337Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/bdinjapurshop {"projectId":"bdinjapurshop","projectNumber":"127702764328","displayName":"bdinjapurshop","name":"projects/bdinjapurshop","resources":{"hostingSite":"bdinjapurshop"},"state":"ACTIVE","etag":"1_5db6963e-b10d-4801-a55d-91a7885bfdc6"}
+[info] 
+[info] === Deploying to 'bdinjapurshop'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2026-04-20T20:12:48.349Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:48.350Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:48.350Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions [none]
+[debug] [2026-04-20T20:12:48.350Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2026-04-20T20:12:50.050Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions 200
+[debug] [2026-04-20T20:12:50.051Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions {"name":"projects/127702764328/sites/bdinjapurshop/versions/f41c4c8fa140287d","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[info] i  hosting[bdinjapurshop]: beginning deploy... 
+[info] i  hosting[bdinjapurshop]: found 7 files in dist 
+[debug] [2026-04-20T20:12:50.080Z] [hosting] uploading with 200 concurrency
+[debug] [2026-04-20T20:12:50.210Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:50.211Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:50.215Z] [hosting] hash cache [ZGlzdA] stored for 7 files
+[debug] [2026-04-20T20:12:50.216Z] [hosting][hash queue][FINAL] {"max":121,"min":22,"avg":48.42857142857143,"active":0,"complete":7,"success":7,"errored":0,"retried":0,"total":7,"elapsed":133}
+[debug] [2026-04-20T20:12:50.217Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/127702764328/sites/bdinjapurshop/versions/f41c4c8fa140287d:populateFiles [none]
+[debug] [2026-04-20T20:12:50.217Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/127702764328/sites/bdinjapurshop/versions/f41c4c8fa140287d:populateFiles {"files":{"/index.html":"365235bd3c851968a33447fb68538e8e8bd3f6144a32e17770c9d10150241a7c","/assets/purify.es-CovBOfck.js":"cc11a306b72b1ca8b8d598441ad335afe8c982c2a4d01181a680c0b8df9b8ba9","/assets/index.es-D2QBJx3m.js":"169ef9d7e7b3b64c87cf65cb153d3219e41d92e5e6c10ebf1492a79812323841","/assets/html2canvas.esm-DXEQVQnt.js":"01db109999aa1d6836594d5d82b9ed78d6239313854ccf0e48557ddc0a6ab1f1","/assets/logo-805-3G7P.png":"8eb472ef7bc22891242616a62c024151cf33e209ebdfeff48f3a28256a0d045d","/assets/index-DjQ0at0u.css":"14a3749b237a0362930ab67f7d449a4ab8ef1760404a098d68968eac553c13c9","/assets/index-CYlpx9IF.js":"12327345a670257e6c0b822c5ce038203143582ca97325df706b21ec8abde31c"}}
+[debug] [2026-04-20T20:12:51.225Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/127702764328/sites/bdinjapurshop/versions/f41c4c8fa140287d:populateFiles 200
+[debug] [2026-04-20T20:12:51.225Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/127702764328/sites/bdinjapurshop/versions/f41c4c8fa140287d:populateFiles {"uploadRequiredHashes":["14a3749b237a0362930ab67f7d449a4ab8ef1760404a098d68968eac553c13c9","12327345a670257e6c0b822c5ce038203143582ca97325df706b21ec8abde31c","365235bd3c851968a33447fb68538e8e8bd3f6144a32e17770c9d10150241a7c","169ef9d7e7b3b64c87cf65cb153d3219e41d92e5e6c10ebf1492a79812323841"],"uploadUrl":"https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files"}
+[debug] [2026-04-20T20:12:51.227Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:51.228Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:51.228Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:51.229Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:51.229Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:51.230Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:51.230Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:51.231Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:51.231Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/14a3749b237a0362930ab67f7d449a4ab8ef1760404a098d68968eac553c13c9 [none]
+[debug] [2026-04-20T20:12:51.232Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/14a3749b237a0362930ab67f7d449a4ab8ef1760404a098d68968eac553c13c9 [stream]
+[debug] [2026-04-20T20:12:51.235Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/12327345a670257e6c0b822c5ce038203143582ca97325df706b21ec8abde31c [none]
+[debug] [2026-04-20T20:12:51.236Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/12327345a670257e6c0b822c5ce038203143582ca97325df706b21ec8abde31c [stream]
+[debug] [2026-04-20T20:12:51.238Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/365235bd3c851968a33447fb68538e8e8bd3f6144a32e17770c9d10150241a7c [none]
+[debug] [2026-04-20T20:12:51.238Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/365235bd3c851968a33447fb68538e8e8bd3f6144a32e17770c9d10150241a7c [stream]
+[debug] [2026-04-20T20:12:51.241Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/169ef9d7e7b3b64c87cf65cb153d3219e41d92e5e6c10ebf1492a79812323841 [none]
+[debug] [2026-04-20T20:12:51.241Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/169ef9d7e7b3b64c87cf65cb153d3219e41d92e5e6c10ebf1492a79812323841 [stream]
+[debug] [2026-04-20T20:12:51.244Z] [hosting][populate queue][FINAL] {"max":1021,"min":1021,"avg":1021,"active":0,"complete":1,"success":1,"errored":0,"retried":0,"total":1,"elapsed":1035}
+[debug] [2026-04-20T20:12:51.244Z] [hosting] uploads queued: 4
+[info] i  hosting: uploading new files [0/4] (0%) 
+[debug] [2026-04-20T20:12:53.207Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/365235bd3c851968a33447fb68538e8e8bd3f6144a32e17770c9d10150241a7c 200
+[debug] [2026-04-20T20:12:53.207Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/365235bd3c851968a33447fb68538e8e8bd3f6144a32e17770c9d10150241a7c [stream]
+[debug] [2026-04-20T20:12:53.212Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/169ef9d7e7b3b64c87cf65cb153d3219e41d92e5e6c10ebf1492a79812323841 200
+[debug] [2026-04-20T20:12:53.212Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/169ef9d7e7b3b64c87cf65cb153d3219e41d92e5e6c10ebf1492a79812323841 [stream]
+[debug] [2026-04-20T20:12:54.070Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/14a3749b237a0362930ab67f7d449a4ab8ef1760404a098d68968eac553c13c9 200
+[debug] [2026-04-20T20:12:54.070Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/14a3749b237a0362930ab67f7d449a4ab8ef1760404a098d68968eac553c13c9 [stream]
+[info] i  hosting: uploading new files [3/4] (75%) 
+[debug] [2026-04-20T20:12:54.433Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/12327345a670257e6c0b822c5ce038203143582ca97325df706b21ec8abde31c 200
+[debug] [2026-04-20T20:12:54.434Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/f41c4c8fa140287d/files/12327345a670257e6c0b822c5ce038203143582ca97325df706b21ec8abde31c [stream]
+[debug] [2026-04-20T20:12:54.434Z] [hosting][upload queue][FINAL] {"max":3206,"min":1979,"avg":2503,"active":0,"complete":4,"success":4,"errored":0,"retried":0,"total":4,"elapsed":3208}
+[info] i  hosting: upload complete 
+[info] +  hosting[bdinjapurshop]: file upload complete 
+[debug] [2026-04-20T20:12:54.435Z] [hosting] deploy completed after 4380ms
+[debug] [2026-04-20T20:12:54.435Z] [
+  {
+    "config": {
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "site": "bdinjapurshop"
+    },
+    "version": "projects/127702764328/sites/bdinjapurshop/versions/f41c4c8fa140287d"
+  }
+]
+[info] i  hosting[bdinjapurshop]: finalizing version... 
+[debug] [2026-04-20T20:12:54.440Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:54.440Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:54.450Z] >>> [apiv2][query] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions/f41c4c8fa140287d updateMask=status%2Cconfig
+[debug] [2026-04-20T20:12:54.450Z] >>> [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions/f41c4c8fa140287d {"status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]}}
+[debug] [2026-04-20T20:12:55.362Z] <<< [apiv2][status] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions/f41c4c8fa140287d 200
+[debug] [2026-04-20T20:12:55.362Z] <<< [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions/f41c4c8fa140287d {"name":"projects/127702764328/sites/bdinjapurshop/versions/f41c4c8fa140287d","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2026-04-20T20:12:48.876840Z","createUser":{"email":"ru.cse29@gmail.com"},"finalizeTime":"2026-04-20T20:12:54.817197Z","finalizeUser":{"email":"ru.cse29@gmail.com"}}
+[debug] [2026-04-20T20:12:55.362Z] [hosting] finalized version for bdinjapurshop:[object Object]
+[info] +  hosting[bdinjapurshop]: version finalized 
+[info] i  hosting[bdinjapurshop]: releasing new version... 
+[debug] [2026-04-20T20:12:55.364Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:55.364Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:12:55.364Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/channels/live/releases versionName=projects%2F127702764328%2Fsites%2Fbdinjapurshop%2Fversions%2Ff41c4c8fa140287d
+[debug] [2026-04-20T20:12:55.365Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/channels/live/releases {}
+[debug] [2026-04-20T20:12:56.363Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/channels/live/releases 200
+[debug] [2026-04-20T20:12:56.363Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/channels/live/releases {"name":"projects/127702764328/sites/bdinjapurshop/channels/live/releases/1776715975162000","version":{"name":"projects/127702764328/sites/bdinjapurshop/versions/f41c4c8fa140287d","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2026-04-20T20:12:48.876840Z","createUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"},"finalizeTime":"2026-04-20T20:12:54.817197Z","finalizeUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"}},"type":"DEPLOY","releaseTime":"2026-04-20T20:12:55.162Z","releaseUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"}}
+[debug] [2026-04-20T20:12:56.363Z] [hosting] release: {"name":"projects/127702764328/sites/bdinjapurshop/channels/live/releases/1776715975162000","version":{"name":"projects/127702764328/sites/bdinjapurshop/versions/f41c4c8fa140287d","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2026-04-20T20:12:48.876840Z","createUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"},"finalizeTime":"2026-04-20T20:12:54.817197Z","finalizeUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"}},"type":"DEPLOY","releaseTime":"2026-04-20T20:12:55.162Z","releaseUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"}}
+[info] +  hosting[bdinjapurshop]: release complete 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/bdinjapurshop/overview
+[info] Hosting URL: https://bdinjapurshop.web.app
+[debug] [2026-04-20T20:13:24.415Z] ----------------------------------------------------------------------
+[debug] [2026-04-20T20:13:24.419Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\ACER\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-04-20T20:13:24.419Z] CLI Version:   15.14.0
+[debug] [2026-04-20T20:13:24.420Z] Platform:      win32
+[debug] [2026-04-20T20:13:24.420Z] Node Version:  v20.19.5
+[debug] [2026-04-20T20:13:24.420Z] Time:          Tue Apr 21 2026 02:13:24 GMT+0600 (Bangladesh Standard Time)
+[debug] [2026-04-20T20:13:24.420Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-20T20:13:27.755Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-20T20:13:27.757Z] > authorizing via signed-in user (ru.cse29@gmail.com)
+[debug] [2026-04-20T20:13:27.758Z] [iam] checking project bdinjapurshop for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-04-20T20:13:27.761Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:27.761Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:27.764Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions [none]
+[debug] [2026-04-20T20:13:27.764Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions  x-goog-user-project=bdinjapurshop
+[debug] [2026-04-20T20:13:27.765Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-20T20:13:29.138Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions 200
+[debug] [2026-04-20T20:13:29.139Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/bdinjapurshop:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-20T20:13:29.141Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:29.141Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:29.142Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/bdinjapurshop [none]
+[debug] [2026-04-20T20:13:29.892Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/bdinjapurshop 200
+[debug] [2026-04-20T20:13:29.892Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/bdinjapurshop {"projectId":"bdinjapurshop","projectNumber":"127702764328","displayName":"bdinjapurshop","name":"projects/bdinjapurshop","resources":{"hostingSite":"bdinjapurshop"},"state":"ACTIVE","etag":"1_5db6963e-b10d-4801-a55d-91a7885bfdc6"}
+[info] 
+[info] === Deploying to 'bdinjapurshop'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2026-04-20T20:13:29.903Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:29.903Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:29.903Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions [none]
+[debug] [2026-04-20T20:13:29.904Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2026-04-20T20:13:31.299Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions 200
+[debug] [2026-04-20T20:13:31.299Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions {"name":"projects/127702764328/sites/bdinjapurshop/versions/d7e61cc0f077e8b0","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[info] i  hosting[bdinjapurshop]: beginning deploy... 
+[info] i  hosting[bdinjapurshop]: found 7 files in dist 
+[debug] [2026-04-20T20:13:31.324Z] [hosting] uploading with 200 concurrency
+[debug] [2026-04-20T20:13:31.329Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:31.329Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:31.331Z] [hosting] hash cache [ZGlzdA] stored for 7 files
+[debug] [2026-04-20T20:13:31.331Z] [hosting][hash queue][FINAL] {"max":1,"min":0,"avg":0,"active":0,"complete":7,"success":7,"errored":0,"retried":0,"total":7,"elapsed":5}
+[debug] [2026-04-20T20:13:31.332Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/127702764328/sites/bdinjapurshop/versions/d7e61cc0f077e8b0:populateFiles [none]
+[debug] [2026-04-20T20:13:31.333Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/127702764328/sites/bdinjapurshop/versions/d7e61cc0f077e8b0:populateFiles {"files":{"/index.html":"365235bd3c851968a33447fb68538e8e8bd3f6144a32e17770c9d10150241a7c","/assets/purify.es-CovBOfck.js":"cc11a306b72b1ca8b8d598441ad335afe8c982c2a4d01181a680c0b8df9b8ba9","/assets/logo-805-3G7P.png":"8eb472ef7bc22891242616a62c024151cf33e209ebdfeff48f3a28256a0d045d","/assets/index.es-D2QBJx3m.js":"169ef9d7e7b3b64c87cf65cb153d3219e41d92e5e6c10ebf1492a79812323841","/assets/index-DjQ0at0u.css":"14a3749b237a0362930ab67f7d449a4ab8ef1760404a098d68968eac553c13c9","/assets/index-CYlpx9IF.js":"12327345a670257e6c0b822c5ce038203143582ca97325df706b21ec8abde31c","/assets/html2canvas.esm-DXEQVQnt.js":"01db109999aa1d6836594d5d82b9ed78d6239313854ccf0e48557ddc0a6ab1f1"}}
+[debug] [2026-04-20T20:13:32.134Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/127702764328/sites/bdinjapurshop/versions/d7e61cc0f077e8b0:populateFiles 200
+[debug] [2026-04-20T20:13:32.134Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/127702764328/sites/bdinjapurshop/versions/d7e61cc0f077e8b0:populateFiles {"uploadUrl":"https://upload-firebasehosting.googleapis.com/upload/sites/bdinjapurshop/versions/d7e61cc0f077e8b0/files"}
+[debug] [2026-04-20T20:13:32.135Z] [hosting][populate queue][FINAL] {"max":807,"min":807,"avg":807,"active":0,"complete":1,"success":1,"errored":0,"retried":0,"total":1,"elapsed":807}
+[debug] [2026-04-20T20:13:32.135Z] [hosting] uploads queued: 0
+[debug] [2026-04-20T20:13:32.135Z] [hosting][upload queue][FINAL] {"max":0,"min":9999999999,"avg":0,"active":0,"complete":0,"success":0,"errored":0,"retried":0,"total":0,"elapsed":1776716012135}
+[info] i  hosting: upload complete 
+[info] +  hosting[bdinjapurshop]: file upload complete 
+[debug] [2026-04-20T20:13:32.136Z] [hosting] deploy completed after 833ms
+[debug] [2026-04-20T20:13:32.137Z] [
+  {
+    "config": {
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "site": "bdinjapurshop"
+    },
+    "version": "projects/127702764328/sites/bdinjapurshop/versions/d7e61cc0f077e8b0"
+  }
+]
+[info] i  hosting[bdinjapurshop]: finalizing version... 
+[debug] [2026-04-20T20:13:32.141Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:32.141Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:32.142Z] >>> [apiv2][query] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions/d7e61cc0f077e8b0 updateMask=status%2Cconfig
+[debug] [2026-04-20T20:13:32.142Z] >>> [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions/d7e61cc0f077e8b0 {"status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]}}
+[debug] [2026-04-20T20:13:33.015Z] <<< [apiv2][status] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions/d7e61cc0f077e8b0 200
+[debug] [2026-04-20T20:13:33.015Z] <<< [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/versions/d7e61cc0f077e8b0 {"name":"projects/127702764328/sites/bdinjapurshop/versions/d7e61cc0f077e8b0","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2026-04-20T20:13:30.278873Z","createUser":{"email":"ru.cse29@gmail.com"},"finalizeTime":"2026-04-20T20:13:32.492324Z","finalizeUser":{"email":"ru.cse29@gmail.com"}}
+[debug] [2026-04-20T20:13:33.016Z] [hosting] finalized version for bdinjapurshop:[object Object]
+[info] +  hosting[bdinjapurshop]: version finalized 
+[info] i  hosting[bdinjapurshop]: releasing new version... 
+[debug] [2026-04-20T20:13:33.016Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:33.017Z] Checked if tokens are valid: true, expires at: 1776719565314
+[debug] [2026-04-20T20:13:33.017Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/channels/live/releases versionName=projects%2F127702764328%2Fsites%2Fbdinjapurshop%2Fversions%2Fd7e61cc0f077e8b0
+[debug] [2026-04-20T20:13:33.017Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/channels/live/releases {}
+[debug] [2026-04-20T20:13:33.986Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/channels/live/releases 200
+[debug] [2026-04-20T20:13:33.986Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/bdinjapurshop/channels/live/releases {"name":"projects/127702764328/sites/bdinjapurshop/channels/live/releases/1776716012636000","version":{"name":"projects/127702764328/sites/bdinjapurshop/versions/d7e61cc0f077e8b0","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2026-04-20T20:13:30.278873Z","createUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"},"finalizeTime":"2026-04-20T20:13:32.492324Z","finalizeUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"}},"type":"DEPLOY","releaseTime":"2026-04-20T20:13:32.636Z","releaseUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"}}
+[debug] [2026-04-20T20:13:33.986Z] [hosting] release: {"name":"projects/127702764328/sites/bdinjapurshop/channels/live/releases/1776716012636000","version":{"name":"projects/127702764328/sites/bdinjapurshop/versions/d7e61cc0f077e8b0","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2026-04-20T20:13:30.278873Z","createUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"},"finalizeTime":"2026-04-20T20:13:32.492324Z","finalizeUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"}},"type":"DEPLOY","releaseTime":"2026-04-20T20:13:32.636Z","releaseUser":{"email":"ru.cse29@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocIv9E6Ssgp2-SGPO04p_08nGEMupe5wGFrcstG5JMPS5ODyTqqW"}}
+[info] +  hosting[bdinjapurshop]: release complete 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/bdinjapurshop/overview
+[info] Hosting URL: https://bdinjapurshop.web.app

@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import { convertToWebP } from '../bstoreapp/webpConverter';
 import ConfirmDialog from '../components/ConfirmDialog';
 import logo from '../bstoreapp/assets/images/logo.png';
+import './catalogAdmin.css';
 
 const BEEIMG_API_KEY = '58c9ff18b1cf549b8fa5b946d5860f27';
 
@@ -98,7 +99,14 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   const [activeSection, setActiveSection] = useState('categories');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileView, setMobileView] = useState('list');
-  const [categoryForm, setCategoryForm] = useState({ id: '', name: '', description: '' });
+  const [categoryFile, setCategoryFile] = useState(null);
+  const [initialLoadState, setInitialLoadState] = useState({
+    categories: false,
+    products: false,
+    payment: false,
+    banners: false,
+  });
+  const [categoryForm, setCategoryForm] = useState({ id: '', name: '', description: '', iconUrl: '' });
   const [productForm, setProductForm] = useState({
     id: '', name: '', description: '', image: '', price: '', discount: '0', stock: '0', categoryId: '', rating: '0', available: true,
   });
@@ -117,6 +125,14 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   const nextProductId = useMemo(() => generateNextProductId(products), [products]);
   const nextBannerNo = useMemo(() => generateNextBannerNo(banners), [banners]);
   const actor = useMemo(() => currentUser ? { displayName: currentUser.displayName, photoURL: currentUser.photoURL } : null, [currentUser]);
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => String(a?.name || a?.id || '').localeCompare(String(b?.name || b?.id || ''))),
+    [categories],
+  );
+  const loadingData = useMemo(
+    () => authReady && canEdit && Object.values(initialLoadState).some((value) => !value),
+    [authReady, canEdit, initialLoadState],
+  );
 
   const imageItems = useMemo(() => {
     const urls = splitImages(productForm.image);
@@ -135,11 +151,38 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   };
 
   useEffect(() => {
+    if (!editingCategoryDocId) {
+      setCategoryForm((prev) => ({ ...prev, id: prev.id || nextCategoryId }));
+    }
+  }, [editingCategoryDocId, nextCategoryId]);
+
+  useEffect(() => {
+    if (!editingProductDocId) {
+      setProductForm((prev) => ({
+        ...prev,
+        id: prev.id || nextProductId,
+        categoryId: prev.categoryId || sortedCategories[0]?.id || '',
+      }));
+    }
+  }, [editingProductDocId, nextProductId, sortedCategories]);
+
+  useEffect(() => {
+    if (!editingBannerDocId) {
+      setBannerForm((prev) => ({ ...prev, no: prev.no || nextBannerNo }));
+    }
+  }, [editingBannerDocId, nextBannerNo]);
+
+  useEffect(() => {
+    setMobileView('list');
+  }, [activeSection]);
+
+  useEffect(() => {
     if (!authReady || !canEdit) return;
 
     const unsubscribe = onSnapshot(collection(db, 'categories'), (snap) => {
       const items = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
       setCategories(items);
+      setInitialLoadState((prev) => ({ ...prev, categories: true }));
       if (!productForm.categoryId && items.length > 0) {
         setProductForm((p) => ({ ...p, categoryId: items[0].id }));
       }
@@ -153,6 +196,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     const unsubscribe = onSnapshot(collection(db, 'products'), (snap) => {
       const items = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
       setProducts(items);
+      setInitialLoadState((prev) => ({ ...prev, products: true }));
     });
     return () => unsubscribe();
   }, [authReady, canEdit]);
@@ -162,6 +206,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     const unsubscribe = onSnapshot(collection(db, 'paymentDetails'), (snap) => {
       const items = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
       setPaymentDetails(items);
+      setInitialLoadState((prev) => ({ ...prev, payment: true }));
     });
     return () => unsubscribe();
   }, [authReady, canEdit]);
@@ -172,6 +217,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
       const items = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
       const sorted = [...items].sort((a, b) => Number(a.no || 0) - Number(b.no || 0));
       setBanners(sorted);
+      setInitialLoadState((prev) => ({ ...prev, banners: true }));
     });
     return () => unsubscribe();
   }, [authReady, canEdit]);
@@ -186,7 +232,21 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     setStatus('Saving category...');
     try {
       const now = new Date().toISOString();
-      const payload = { name: categoryForm.name.trim(), description: categoryForm.description.trim() };
+      let iconUrl = categoryForm.iconUrl.trim();
+      if (categoryFile) {
+        try {
+          iconUrl = await uploadImageToBeeImg(categoryFile);
+        } catch {
+          iconUrl = await toDataUrl(categoryFile);
+        }
+      }
+
+      const payload = {
+        id: categoryForm.id || nextCategoryId,
+        name: categoryForm.name.trim(),
+        description: categoryForm.description.trim(),
+        iconUrl,
+      };
       let next;
       if (editingCategoryDocId) {
         await updateDoc(doc(db, 'categories', editingCategoryDocId), { ...payload, updatedAt: now, updatedBy: actor });
@@ -200,7 +260,8 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
       }
       setCategories(next);
       setEditingCategoryDocId(null);
-      setCategoryForm({ id: '', name: '', description: '' });
+      setCategoryForm({ id: '', name: '', description: '', iconUrl: '' });
+      setCategoryFile(null);
       const message = editingCategoryDocId ? 'Category updated successfully! ✅' : 'Category added successfully! ✅';
       showSuccess(message);
       setStatus(message);
@@ -215,7 +276,13 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
 
   const handleEditCategory = (item) => {
     setEditingCategoryDocId(item._docId);
-    setCategoryForm({ id: item.id || '', name: item.name || '', description: item.description || '' });
+    setCategoryForm({
+      id: item.id || '',
+      name: item.name || '',
+      description: item.description || '',
+      iconUrl: item.iconUrl || '',
+    });
+    setCategoryFile(null);
     setStatus(`Editing category: ${item.name}`);
   };
 
@@ -227,7 +294,8 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
         setCategories(next);
         if (editingCategoryDocId === item._docId) {
           setEditingCategoryDocId(null);
-          setCategoryForm({ id: '', name: '', description: '' });
+          setCategoryForm({ id: '', name: '', description: '', iconUrl: '' });
+          setCategoryFile(null);
         }
         const message = `Category "${item.name}" deleted successfully! 🗑️`;
         showSuccess(message);
@@ -589,10 +657,10 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   };
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 pb-20">
+    <section className="catalog-admin-page">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-900 dark:to-blue-800 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
+      <header className="catalog-admin-topbar">
+        <div className="catalog-admin-topbar-inner">
           <button
             type="button"
             onClick={() => {
@@ -602,16 +670,16 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
                 window.location.href = '/';
               }
             }}
-            className="p-2 hover:bg-blue-700 rounded-lg transition-colors active:scale-95 text-white"
+            className="catalog-admin-back"
             title="Go back"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="flex-1 text-xl sm:text-2xl font-bold text-white text-center sm:text-left">Catalog Manager</h1>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="text-xs sm:text-sm text-blue-100">
+          <h1 className="catalog-admin-topbar-title">Catalog Manager</h1>
+          <div className="catalog-admin-topbar-meta">
+            <div>
               {products.length} products
             </div>
           </div>
@@ -619,17 +687,13 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+      <div className="catalog-admin-content">
         {/* Tab Navigation */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+        <div className="catalog-admin-tabs">
           <button
             type="button"
             onClick={() => setActiveSection('categories')}
-            className={`py-3 px-3 sm:px-4 rounded-lg font-medium transition-all active:scale-95 ${
-              activeSection === 'categories'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-md'
-            }`}
+            className={`catalog-admin-tab ${activeSection === 'categories' ? 'is-active' : ''}`}
           >
             <div className="hidden sm:inline">📁 Categories</div>
             <div className="sm:hidden">Categories</div>
@@ -637,11 +701,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           <button
             type="button"
             onClick={() => setActiveSection('products')}
-            className={`py-3 px-3 sm:px-4 rounded-lg font-medium transition-all active:scale-95 ${
-              activeSection === 'products'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-md'
-            }`}
+            className={`catalog-admin-tab ${activeSection === 'products' ? 'is-active' : ''}`}
           >
             <div className="hidden sm:inline">🛍️ Products</div>
             <div className="sm:hidden">Products</div>
@@ -649,11 +709,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           <button
             type="button"
             onClick={() => setActiveSection('banners')}
-            className={`py-3 px-3 sm:px-4 rounded-lg font-medium transition-all active:scale-95 ${
-              activeSection === 'banners'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-md'
-            }`}
+            className={`catalog-admin-tab ${activeSection === 'banners' ? 'is-active' : ''}`}
           >
             <div className="hidden sm:inline">🎨 Banners</div>
             <div className="sm:hidden">Banners</div>
@@ -661,11 +717,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           <button
             type="button"
             onClick={() => setActiveSection('payment')}
-            className={`py-3 px-3 sm:px-4 rounded-lg font-medium transition-all active:scale-95 ${
-              activeSection === 'payment'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-md'
-            }`}
+            className={`catalog-admin-tab ${activeSection === 'payment' ? 'is-active' : ''}`}
           >
             <div className="hidden sm:inline">💳 Payment</div>
             <div className="sm:hidden">Payment</div>
@@ -674,7 +726,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
 
         {/* Status Message */}
         {status && (
-          <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900 border-l-4 border-blue-600 text-blue-900 dark:text-blue-100 rounded-lg shadow-sm">
+          <div className="catalog-admin-inline-status">
             <p className="text-sm font-medium">{status}</p>
           </div>
         )}
@@ -690,11 +742,14 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
             className="btn mobile-view-toggle"
             onClick={() => setMobileView(mobileView === 'form' ? 'list' : 'form')}
           >
-            {mobileView === 'form' ? '📋 Show Categories List' : '✏️ Show Add Category Form'}
+            {mobileView === 'form' ? 'Show categories list' : 'Open category form'}
           </button>
 
           {/* Form Section */}
-          <form className={`catalog-card catalog-form-section ${mobileView === 'list' ? 'hidden-mobile' : ''}`} onSubmit={addCategory}>
+          <form className={`catalog-card catalog-form-section ${mobileView === 'list' ? 'hidden-mobile' : ''}`} onSubmit={saveCategory}>
+          <div className="catalog-section-divider">
+            <span>Category Form</span>
+          </div>
           <h3>{editingCategoryDocId ? 'Edit Category' : 'Add Category'}</h3>
           <label>
             Category ID
@@ -715,6 +770,15 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
               onChange={(e) => setCategoryForm((s) => ({ ...s, name: e.target.value }))}
               placeholder="Electronics"
               required
+            />
+          </label>
+          <label>
+            Description
+            <textarea
+              value={categoryForm.description}
+              onChange={(e) => setCategoryForm((s) => ({ ...s, description: e.target.value }))}
+              rows={3}
+              placeholder="Short category description"
             />
           </label>
           <label>
@@ -740,7 +804,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
                 type="button"
                 onClick={() => {
                   setEditingCategoryDocId(null);
-                  setCategoryForm({ id: nextCategoryId, name: '', iconUrl: '' });
+                  setCategoryForm({ id: nextCategoryId, name: '', description: '', iconUrl: '' });
                   setCategoryFile(null);
                   setStatus('Category edit canceled.');
                 }}
@@ -753,6 +817,9 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
 
           {/* List Section */}
           <div className={`catalog-card catalog-list-section ${mobileView === 'form' ? 'hidden-mobile' : ''}`}>
+            <div className="catalog-section-divider">
+              <span>Category List</span>
+            </div>
             <h4>Categories ({categories.length})</h4>
             <ul>
               {sortedCategories.map((item) => (
@@ -769,7 +836,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
                       <img src={item.createdBy.photoURL} alt={item.createdBy.displayName || 'Creator'} />
                     ) : null}
                     <span>{item.name}</span>
-                    <code>{item.id}</code>
+                    <code>{item.id || item._docId}</code>
                     <small>By: {item.createdBy?.displayName || 'Unknown'}</small>
                   </div>
                   <div className="item-actions">
@@ -791,11 +858,14 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
             className="btn mobile-view-toggle"
             onClick={() => setMobileView(mobileView === 'form' ? 'list' : 'form')}
           >
-            {mobileView === 'form' ? '📋 Show Products List' : '✏️ Show Add Product Form'}
+            {mobileView === 'form' ? 'Show products list' : 'Open product form'}
           </button>
 
           {/* Form Section */}
-          <form className={`catalog-card catalog-form-section ${mobileView === 'list' ? 'hidden-mobile' : ''}`} onSubmit={addProduct}>
+          <form className={`catalog-card catalog-form-section ${mobileView === 'list' ? 'hidden-mobile' : ''}`} onSubmit={saveProduct}>
+          <div className="catalog-section-divider">
+            <span>Product Form</span>
+          </div>
           <h3>{editingProductDocId ? 'Edit Product' : 'Add Product'}</h3>
           <div className="two-col">
             <label>
@@ -1011,6 +1081,9 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
 
           {/* List Section */}
           <div className={`catalog-card catalog-list-section ${mobileView === 'form' ? 'hidden-mobile' : ''}`}>
+            <div className="catalog-section-divider">
+              <span>Product List</span>
+            </div>
             <h4>Products ({products.length})</h4>
             <ul>
               {[...products].reverse().map((item) => {
@@ -1050,6 +1123,9 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
 
         {activeSection === 'payment' ? (
         <form className="catalog-card" onSubmit={savePaymentDetail}>
+          <div className="catalog-section-divider">
+            <span>Payment Setup</span>
+          </div>
           <h3>{editingPaymentDocId ? 'Edit Payment Details' : 'Add Payment Details'}</h3>
 
           <label>
@@ -1131,6 +1207,9 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           </div>
 
           <div className="list-wrap">
+            <div className="catalog-section-divider catalog-section-divider--inner">
+              <span>Saved Payment Areas</span>
+            </div>
             <h4>Payment Details ({paymentDetails.length})</h4>
             <ul>
               {paymentDetails.map((item) => (
@@ -1156,6 +1235,9 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
 
         {activeSection === 'banners' ? (
         <form className="catalog-card" onSubmit={saveBanner}>
+          <div className="catalog-section-divider">
+            <span>Banner Setup</span>
+          </div>
           <h3>{editingBannerDocId ? 'Edit Banner' : 'Add Banner'}</h3>
 
           <label>
@@ -1232,6 +1314,9 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           </div>
 
           <div className="list-wrap">
+            <div className="catalog-section-divider catalog-section-divider--inner">
+              <span>Banner List</span>
+            </div>
             <h4>Banners ({banners.length})</h4>
             <ul>
               {banners.map((item) => (

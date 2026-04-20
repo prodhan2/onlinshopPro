@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { getCartState, subscribeCart } from '../bstoreapp/cardManager';
+import { subscribeCart } from '../bstoreapp/cardManager';
 import { getWishlist } from '../utils/wishlistUtils.js';
 import { db } from '../firebase';
+import logo from '../bstoreapp/assets/images/logo.png';
 import './AccountDashboard.css';
 
 export default function AccountDashboardPage({ currentUser }) {
@@ -143,6 +144,7 @@ export default function AccountDashboardPage({ currentUser }) {
     return (
       <div className="account-dashboard-page">
         <div className="account-empty-state">
+          <img src={logo} alt="Beautiful Dinajpur" className="account-page-logo" />
           <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
@@ -161,6 +163,7 @@ export default function AccountDashboardPage({ currentUser }) {
     <div className="account-dashboard-page">
       {/* User Profile Header */}
       <div className="account-user-header">
+        <img src={logo} alt="Beautiful Dinajpur" className="account-page-logo" />
         <div className="account-avatar">
           {currentUser.photoURL ? (
             <img src={currentUser.photoURL} alt={currentUser.displayName || 'User'} />
