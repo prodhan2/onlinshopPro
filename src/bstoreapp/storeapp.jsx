@@ -71,6 +71,9 @@ export default function BStoreApp() {
   const [isOnAdminPage, setIsOnAdminPage] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [musicPlaying, setMusicPlaying] = useState(false);
+  const [musicVisible, setMusicVisible] = useState(true);
+  const [showMusicClose, setShowMusicClose] = useState(false);
+  const longPressTimer = useRef(null);
   const audioRef = useRef(null);
   const dragRef = useRef(null);
   const dragState = useRef({ dragging: false, startX: 0, startY: 0, origX: 0, origY: 0 });
@@ -80,16 +83,16 @@ export default function BStoreApp() {
     const audio = new Audio(musicFile);
     audio.loop = true;
     audioRef.current = audio;
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise.then(() => setMusicPlaying(true)).catch(() => {
-        const unlock = () => {
-          audio.play().then(() => setMusicPlaying(true)).catch(() => {});
-          document.removeEventListener('click', unlock);
-        };
-        document.addEventListener('click', unlock);
-      });
-    }
+    const tryPlay = () => {
+      audio.play().then(() => setMusicPlaying(true)).catch(() => {});
+      document.removeEventListener('click', tryPlay);
+      document.removeEventListener('touchstart', tryPlay);
+    };
+    const p = audio.play();
+    if (p !== undefined) p.then(() => setMusicPlaying(true)).catch(() => {
+      document.addEventListener('click', tryPlay);
+      document.addEventListener('touchstart', tryPlay);
+    });
     return () => { audio.pause(); audio.src = ''; };
   }, []);
 
@@ -102,6 +105,10 @@ export default function BStoreApp() {
   }
 
   function onDragStart(e) {
+    // long press detection
+    longPressTimer.current = setTimeout(() => {
+      setShowMusicClose(true);
+    }, 500);
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     const rect = dragRef.current.getBoundingClientRect();
@@ -116,12 +123,15 @@ export default function BStoreApp() {
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       const dx = clientX - dragState.current.startX;
       const dy = clientY - dragState.current.startY;
-      const btnW = 52, btnH = 52;
+      const btnW = 36, btnH = 36;
       const newLeft = Math.max(0, Math.min(dragState.current.origX + dx, window.innerWidth - btnW));
       const newTop = Math.max(0, Math.min(dragState.current.origY + dy, window.innerHeight - btnH));
       setBtnPos({ right: window.innerWidth - newLeft - btnW, bottom: window.innerHeight - newTop - btnH });
     }
-    function onEnd() { dragState.current.dragging = false; }
+    function onEnd() {
+      clearTimeout(longPressTimer.current);
+      dragState.current.dragging = false;
+    }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onEnd);
     window.addEventListener('touchmove', onMove, { passive: false });
@@ -256,6 +266,31 @@ export default function BStoreApp() {
       document.body.style.overflow = '';
     };
   }, [showLogoutModal]);
+
+  const [showExitModal, setShowExitModal] = useState(false);
+  const exitShownRef = useRef(false);
+
+  // Exit Confirmation — triggers when mouse leaves top of viewport (user going to close tab)
+  useEffect(() => {
+    const handleMouseLeave = (e) => {
+      if (e.clientY <= 0 && !exitShownRef.current) {
+        exitShownRef.current = true;
+        setShowExitModal(true);
+      }
+    };
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => document.removeEventListener('mouseleave', handleMouseLeave);
+  }, []);
+
+  // Also catch actual tab/browser close with native dialog
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // ─────────────────────────────────────────────────────────
   // Catalog Admin Event Listener
@@ -512,46 +547,167 @@ export default function BStoreApp() {
           />
         )}
 
+        {/* EXIT CONFIRMATION MODAL */}
+        {showExitModal && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 99999,
+            background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <style>{`
+              @keyframes exitCardIn {
+                from { opacity: 0; transform: scale(0.88) translateY(30px); }
+                to   { opacity: 1; transform: scale(1) translateY(0); }
+              }
+              @keyframes exitOverlayIn {
+                from { opacity: 0; } to { opacity: 1; }
+              }
+              .exit-stay-btn:hover  { background: rgba(255,255,255,0.13) !important; }
+              .exit-leave-btn:hover { filter: brightness(1.12); }
+            `}</style>
+
+            <div style={{
+              background: 'linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+              borderRadius: '32px',
+              padding: '2.8rem 2.2rem 2.2rem',
+              maxWidth: '360px', width: '92%',
+              textAlign: 'center',
+              boxShadow: '0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08)',
+              animation: 'exitCardIn 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+              position: 'relative',
+            }}>
+
+              {/* Glow ring behind icon */}
+              <div style={{
+                position: 'absolute', top: 32, left: '50%',
+                transform: 'translateX(-50%)',
+                width: 90, height: 90, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(239,68,68,0.25) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }} />
+
+              {/* Icon */}
+              <div style={{
+                width: 70, height: 70, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 1.4rem',
+                boxShadow: '0 8px 32px rgba(239,68,68,0.5)',
+              }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </div>
+
+              {/* Title */}
+              <h3 style={{
+                color: '#f1f5f9', fontWeight: 800, fontSize: '1.35rem',
+                margin: '0 0 0.6rem', letterSpacing: '-0.02em',
+              }}>সাইট ছেড়ে যাচ্ছেন? 😢</h3>
+
+              {/* Subtitle */}
+              <p style={{
+                color: '#94a3b8', fontSize: '0.9rem',
+                margin: '0 0 0.4rem', lineHeight: 1.65,
+              }}>আপনি কি সত্যিই এই সাইট থেকে বের হতে চান?</p>
+              <p style={{
+                color: '#64748b', fontSize: '0.8rem',
+                margin: '0 0 2rem', lineHeight: 1.5,
+              }}>আপনার কার্টের তথ্য হারিয়ে যেতে পারে।</p>
+
+              {/* Divider */}
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginBottom: '1.5rem' }} />
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: '0.8rem' }}>
+                <button
+                  className="exit-stay-btn"
+                  onClick={() => { setShowExitModal(false); exitShownRef.current = false; }}
+                  style={{
+                    flex: 1, padding: '0.9rem', borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    background: 'rgba(255,255,255,0.06)',
+                    color: '#e2e8f0', fontWeight: 700, fontSize: '0.95rem',
+                    cursor: 'pointer', transition: 'background 0.2s',
+                  }}
+                >না, থাকব 🙂</button>
+                <button
+                  className="exit-leave-btn"
+                  onClick={() => { setShowExitModal(false); window.location.href = 'about:blank'; }}
+                  style={{
+                    flex: 1, padding: '0.9rem', borderRadius: '16px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                    color: '#fff', fontWeight: 700, fontSize: '0.95rem',
+                    cursor: 'pointer', transition: 'filter 0.2s',
+                    boxShadow: '0 4px 20px rgba(239,68,68,0.45)',
+                  }}
+                >হ্যাঁ, বের হব</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* FLOATING MUSIC BUTTON */}
-        <button
-          ref={dragRef}
-          className={`floating-music-btn${musicPlaying ? ' playing' : ''}`}
-          style={{ right: btnPos.right, bottom: btnPos.bottom, position: 'fixed', cursor: 'grab', touchAction: 'none' }}
-          onMouseDown={onDragStart}
-          onTouchStart={onDragStart}
-          onClick={toggleMusic}
-          title={musicPlaying ? 'Music Off' : 'Music On'}
-        >
-          {musicPlaying ? (
-            <svg width="28" height="22" viewBox="0 0 28 22" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#f472b6"/>
-                  <stop offset="25%" stopColor="#a78bfa"/>
-                  <stop offset="50%" stopColor="#38bdf8"/>
-                  <stop offset="75%" stopColor="#34d399"/>
-                  <stop offset="100%" stopColor="#fbbf24"/>
-                </linearGradient>
-              </defs>
-              <rect x="0" y="6" width="3" height="10" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="4;16;4" dur="0.8s" repeatCount="indefinite"/><animate attributeName="y" values="9;3;9" dur="0.8s" repeatCount="indefinite"/></rect>
-              <rect x="5" y="3" width="3" height="16" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="16;4;16" dur="0.8s" repeatCount="indefinite"/><animate attributeName="y" values="3;9;3" dur="0.8s" repeatCount="indefinite"/></rect>
-              <rect x="10" y="1" width="3" height="20" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="20;6;20" dur="0.7s" repeatCount="indefinite"/><animate attributeName="y" values="1;8;1" dur="0.7s" repeatCount="indefinite"/></rect>
-              <rect x="15" y="3" width="3" height="16" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="6;16;6" dur="0.9s" repeatCount="indefinite"/><animate attributeName="y" values="8;3;8" dur="0.9s" repeatCount="indefinite"/></rect>
-              <rect x="20" y="6" width="3" height="10" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="10;4;10" dur="0.75s" repeatCount="indefinite"/><animate attributeName="y" values="6;9;6" dur="0.75s" repeatCount="indefinite"/></rect>
-              <rect x="25" y="4" width="3" height="14" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="4;14;4" dur="0.85s" repeatCount="indefinite"/><animate attributeName="y" values="9;4;9" dur="0.85s" repeatCount="indefinite"/></rect>
-            </svg>
-          ) : (
-            <svg width="28" height="22" viewBox="0 0 28 22" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="8" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/>
-              <rect x="5" y="6" width="3" height="10" rx="1.5" fill="rgba(255,255,255,0.3)"/>
-              <rect x="10" y="4" width="3" height="14" rx="1.5" fill="rgba(255,255,255,0.3)"/>
-              <rect x="15" y="6" width="3" height="10" rx="1.5" fill="rgba(255,255,255,0.3)"/>
-              <rect x="20" y="8" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/>
-              <rect x="25" y="6" width="3" height="10" rx="1.5" fill="rgba(255,255,255,0.3)"/>
-              <line x1="2" y1="2" x2="26" y2="20" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          )}
-        </button>
+        {musicVisible && (
+          <div style={{ position: 'fixed', right: btnPos.right, bottom: btnPos.bottom, zIndex: 9999, touchAction: 'none' }}>
+            {showMusicClose && (
+              <button
+                onClick={() => { setMusicVisible(false); setShowMusicClose(false); if (audioRef.current) { audioRef.current.pause(); setMusicPlaying(false); } }}
+                style={{
+                  position: 'absolute', top: -10, right: -10,
+                  width: 20, height: 20, borderRadius: '50%',
+                  background: '#ef4444', border: '2px solid #fff',
+                  color: '#fff', fontSize: '0.75rem', fontWeight: 700,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', zIndex: 10000,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                }}
+              >×</button>
+            )}
+            <button
+              ref={dragRef}
+              className={`floating-music-btn${musicPlaying ? ' playing' : ''}`}
+              style={{ position: 'relative', cursor: showMusicClose ? 'default' : 'grab' }}
+              onMouseDown={onDragStart}
+              onTouchStart={onDragStart}
+              onClick={() => { if (showMusicClose) { setShowMusicClose(false); return; } toggleMusic(); }}
+              title={musicPlaying ? 'Music Off' : 'Music On'}
+            >
+              {musicPlaying ? (
+                <svg width="20" height="16" viewBox="0 0 28 22" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#f472b6"/>
+                      <stop offset="25%" stopColor="#a78bfa"/>
+                      <stop offset="50%" stopColor="#38bdf8"/>
+                      <stop offset="75%" stopColor="#34d399"/>
+                      <stop offset="100%" stopColor="#fbbf24"/>
+                    </linearGradient>
+                  </defs>
+                  <rect x="0" y="6" width="3" height="10" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="4;16;4" dur="0.8s" repeatCount="indefinite"/><animate attributeName="y" values="9;3;9" dur="0.8s" repeatCount="indefinite"/></rect>
+                  <rect x="5" y="3" width="3" height="16" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="16;4;16" dur="0.8s" repeatCount="indefinite"/><animate attributeName="y" values="3;9;3" dur="0.8s" repeatCount="indefinite"/></rect>
+                  <rect x="10" y="1" width="3" height="20" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="20;6;20" dur="0.7s" repeatCount="indefinite"/><animate attributeName="y" values="1;8;1" dur="0.7s" repeatCount="indefinite"/></rect>
+                  <rect x="15" y="3" width="3" height="16" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="6;16;6" dur="0.9s" repeatCount="indefinite"/><animate attributeName="y" values="8;3;8" dur="0.9s" repeatCount="indefinite"/></rect>
+                  <rect x="20" y="6" width="3" height="10" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="10;4;10" dur="0.75s" repeatCount="indefinite"/><animate attributeName="y" values="6;9;6" dur="0.75s" repeatCount="indefinite"/></rect>
+                  <rect x="25" y="4" width="3" height="14" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="4;14;4" dur="0.85s" repeatCount="indefinite"/><animate attributeName="y" values="9;4;9" dur="0.85s" repeatCount="indefinite"/></rect>
+                </svg>
+              ) : (
+                <svg width="20" height="16" viewBox="0 0 28 22" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="8" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+                  <rect x="5" y="6" width="3" height="10" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+                  <rect x="10" y="4" width="3" height="14" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+                  <rect x="15" y="6" width="3" height="10" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+                  <rect x="20" y="8" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+                  <rect x="25" y="6" width="3" height="10" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+                  <line x1="2" y1="2" x2="26" y2="20" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              )}
+            </button>
+          </div>
+        )}
       </main>
     </>
   );
