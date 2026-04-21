@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { setCartOwner, loadCart, subscribeCart } from './cardManager';
+import musicFile from './assets/mp3/b.mp3';
 
 // Pages
 import HomePage from '../user/homepage';
@@ -69,6 +70,69 @@ export default function BStoreApp() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isOnAdminPage, setIsOnAdminPage] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const audioRef = useRef(null);
+  const dragRef = useRef(null);
+  const dragState = useRef({ dragging: false, startX: 0, startY: 0, origX: 0, origY: 0 });
+  const [btnPos, setBtnPos] = useState({ right: 19, bottom: 88 });
+
+  useEffect(() => {
+    const audio = new Audio(musicFile);
+    audio.loop = true;
+    audioRef.current = audio;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => setMusicPlaying(true)).catch(() => {
+        const unlock = () => {
+          audio.play().then(() => setMusicPlaying(true)).catch(() => {});
+          document.removeEventListener('click', unlock);
+        };
+        document.addEventListener('click', unlock);
+      });
+    }
+    return () => { audio.pause(); audio.src = ''; };
+  }, []);
+
+  function toggleMusic() {
+    if (dragState.current.dragging) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (musicPlaying) { audio.pause(); setMusicPlaying(false); }
+    else { audio.play().then(() => setMusicPlaying(true)).catch(() => {}); }
+  }
+
+  function onDragStart(e) {
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const rect = dragRef.current.getBoundingClientRect();
+    dragState.current = { dragging: true, startX: clientX, startY: clientY, origX: rect.left, origY: rect.top };
+    e.preventDefault();
+  }
+
+  useEffect(() => {
+    function onMove(e) {
+      if (!dragState.current.dragging) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const dx = clientX - dragState.current.startX;
+      const dy = clientY - dragState.current.startY;
+      const btnW = 52, btnH = 52;
+      const newLeft = Math.max(0, Math.min(dragState.current.origX + dx, window.innerWidth - btnW));
+      const newTop = Math.max(0, Math.min(dragState.current.origY + dy, window.innerHeight - btnH));
+      setBtnPos({ right: window.innerWidth - newLeft - btnW, bottom: window.innerHeight - newTop - btnH });
+    }
+    function onEnd() { dragState.current.dragging = false; }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+  }, []);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -447,6 +511,47 @@ export default function BStoreApp() {
             onOpenNotifications={() => setNotificationPanelOpen(true)}
           />
         )}
+
+        {/* FLOATING MUSIC BUTTON */}
+        <button
+          ref={dragRef}
+          className={`floating-music-btn${musicPlaying ? ' playing' : ''}`}
+          style={{ right: btnPos.right, bottom: btnPos.bottom, position: 'fixed', cursor: 'grab', touchAction: 'none' }}
+          onMouseDown={onDragStart}
+          onTouchStart={onDragStart}
+          onClick={toggleMusic}
+          title={musicPlaying ? 'Music Off' : 'Music On'}
+        >
+          {musicPlaying ? (
+            <svg width="28" height="22" viewBox="0 0 28 22" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#f472b6"/>
+                  <stop offset="25%" stopColor="#a78bfa"/>
+                  <stop offset="50%" stopColor="#38bdf8"/>
+                  <stop offset="75%" stopColor="#34d399"/>
+                  <stop offset="100%" stopColor="#fbbf24"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="6" width="3" height="10" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="4;16;4" dur="0.8s" repeatCount="indefinite"/><animate attributeName="y" values="9;3;9" dur="0.8s" repeatCount="indefinite"/></rect>
+              <rect x="5" y="3" width="3" height="16" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="16;4;16" dur="0.8s" repeatCount="indefinite"/><animate attributeName="y" values="3;9;3" dur="0.8s" repeatCount="indefinite"/></rect>
+              <rect x="10" y="1" width="3" height="20" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="20;6;20" dur="0.7s" repeatCount="indefinite"/><animate attributeName="y" values="1;8;1" dur="0.7s" repeatCount="indefinite"/></rect>
+              <rect x="15" y="3" width="3" height="16" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="6;16;6" dur="0.9s" repeatCount="indefinite"/><animate attributeName="y" values="8;3;8" dur="0.9s" repeatCount="indefinite"/></rect>
+              <rect x="20" y="6" width="3" height="10" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="10;4;10" dur="0.75s" repeatCount="indefinite"/><animate attributeName="y" values="6;9;6" dur="0.75s" repeatCount="indefinite"/></rect>
+              <rect x="25" y="4" width="3" height="14" rx="1.5" fill="url(#waveGrad)"><animate attributeName="height" values="4;14;4" dur="0.85s" repeatCount="indefinite"/><animate attributeName="y" values="9;4;9" dur="0.85s" repeatCount="indefinite"/></rect>
+            </svg>
+          ) : (
+            <svg width="28" height="22" viewBox="0 0 28 22" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="8" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+              <rect x="5" y="6" width="3" height="10" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+              <rect x="10" y="4" width="3" height="14" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+              <rect x="15" y="6" width="3" height="10" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+              <rect x="20" y="8" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+              <rect x="25" y="6" width="3" height="10" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+              <line x1="2" y1="2" x2="26" y2="20" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          )}
+        </button>
       </main>
     </>
   );
