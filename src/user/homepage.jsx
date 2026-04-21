@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import musicFile from '../bstoreapp/assets/mp3/b.mp3';
 import { FaBars, FaStore, FaSearch } from 'react-icons/fa';
-import { FiShoppingCart, FiUser, FiHeart, FiChevronRight, FiArrowRight, FiLogIn, FiGrid } from 'react-icons/fi';
+import { FiShoppingCart, FiUser, FiHeart, FiChevronRight, FiArrowRight, FiLogIn, FiGrid, FiPlus, FiCheck } from 'react-icons/fi';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { addToCart, getCartState, isProductInCart, loadCart, subscribeCart } from '../bstoreapp/cardManager';
 import { createBannerItem, createCategory, createProduct, getDiscountedUnitPrice } from '../bstoreapp/models';
@@ -70,6 +71,83 @@ export default function HomePage({
   const [popupMessage, setPopupMessage] = useState('');
   const [popupType, setPopupType] = useState('success');
   const [darkMode, setDarkMode] = useState(false);
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const audioRef = useRef(null);
+  const dragRef = useRef(null);
+  const dragState = useRef({ dragging: false, startX: 0, startY: 0, origX: 0, origY: 0 });
+  const [btnPos, setBtnPos] = useState({ right: 19, bottom: 88 });
+
+  function onDragStart(e) {
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const rect = dragRef.current.getBoundingClientRect();
+    dragState.current = {
+      dragging: true,
+      startX: clientX,
+      startY: clientY,
+      origX: rect.left,
+      origY: rect.top,
+    };
+    e.preventDefault();
+  }
+
+  useEffect(() => {
+    function onMove(e) {
+      if (!dragState.current.dragging) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const dx = clientX - dragState.current.startX;
+      const dy = clientY - dragState.current.startY;
+      const newLeft = dragState.current.origX + dx;
+      const newTop = dragState.current.origY + dy;
+      const btnW = 52, btnH = 52;
+      const maxX = window.innerWidth - btnW;
+      const maxY = window.innerHeight - btnH;
+      const clampedLeft = Math.max(0, Math.min(newLeft, maxX));
+      const clampedTop = Math.max(0, Math.min(newTop, maxY));
+      setBtnPos({ right: window.innerWidth - clampedLeft - btnW, bottom: window.innerHeight - clampedTop - btnH });
+    }
+    function onEnd() { dragState.current.dragging = false; }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+  }, []);
+
+  useEffect(() => {
+    const audio = new Audio(musicFile);
+    audio.loop = true;
+    audioRef.current = audio;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => setMusicPlaying(true)).catch(() => {
+        const unlock = () => {
+          audio.play().then(() => setMusicPlaying(true)).catch(() => {});
+          document.removeEventListener('click', unlock);
+        };
+        document.addEventListener('click', unlock);
+      });
+    }
+    return () => { audio.pause(); audio.src = ''; };
+  }, []);
+
+  function toggleMusic() {
+    if (dragState.current.dragging) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (musicPlaying) {
+      audio.pause();
+      setMusicPlaying(false);
+    } else {
+      audio.play().then(() => setMusicPlaying(true)).catch(() => {});
+    }
+  }
 
   useEffect(() => {
     const handleOpenDrawer = () => setIsDrawerOpen(true);
@@ -370,21 +448,37 @@ export default function HomePage({
 
       {/* POPUP NOTIFICATION */}
       {showPopup && (
-        <div className={`fixed top-4 right-4 left-4 z-50 p-4 rounded-xl shadow-xl flex items-center gap-3 animate-fade-in ${
-          popupType === 'success' 
-            ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
-            : 'bg-gradient-to-r from-yellow-500 to-orange-500'
-        } text-white`}>
-          <div className="text-2xl flex-shrink-0">
-            {popupType === 'success' ? '✓' : '⚠'}
+        <div
+          style={{
+            position: 'fixed',
+            top: '1rem',
+            left: '1rem',
+            right: '1rem',
+            zIndex: 99999,
+            animation: 'cartPopupIn 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            padding: '0.85rem 1rem',
+            borderRadius: '14px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            background: popupType === 'success'
+              ? 'linear-gradient(135deg, #10b981, #059669)'
+              : 'linear-gradient(135deg, #f59e0b, #d97706)',
+            color: '#fff',
+          }}>
+            <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>
+              {popupType === 'success' ? '✓' : '⚠'}
+            </span>
+            <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem', flex: 1 }}>{popupMessage}</p>
+            <button
+              style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', padding: 0, flexShrink: 0, opacity: 0.8 }}
+              onClick={() => setShowPopup(false)}
+            >×</button>
           </div>
-          <p className="font-medium flex-1">{popupMessage}</p>
-          <button 
-            className="text-xl hover:opacity-70 flex-shrink-0"
-            onClick={() => setShowPopup(false)}
-          >
-            ×
-          </button>
         </div>
       )}
 
@@ -620,33 +714,31 @@ export default function HomePage({
                       <div className="p-3 flex flex-col">
                         <h3 className="font-semibold text-sm mb-2 line-clamp-2 text-gray-800">{product.name}</h3>
                         
-                        {/* Price */}
-                        <div className="mb-3">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-lg font-bold text-blue-600">
-                              ৳{getDiscountedUnitPrice(product).toFixed(0)}
+                        {/* Price and Cart Button */}
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="text-lg font-bold text-blue-600">
+                            ৳{getDiscountedUnitPrice(product).toFixed(0)}
+                          </span>
+                          {product.discount > 0 && (
+                            <span className="text-xs text-gray-500 line-through">
+                              ৳{Number(product.price || product.unitPrice).toFixed(0)}
                             </span>
-                            {product.discount > 0 && (
-                              <span className="text-xs text-gray-500 line-through">
-                                ৳{Number(product.price || product.unitPrice).toFixed(0)}
-                              </span>
-                            )}
-                          </div>
+                          )}
+                          {currentUser && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleAddToCart(product, e); }}
+                              className={`ml-auto flex items-center justify-center rounded-full p-2 transition-all shadow-sm
+                                ${isProductInCart(product)
+                                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                                  : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-md active:scale-95'}
+                              `}
+                              style={{ width: 34, height: 34 }}
+                              title={isProductInCart(product) ? 'In Cart' : 'Add to Cart'}
+                            >
+                              {isProductInCart(product) ? <FiCheck size={18} /> : <FiPlus size={18} />}
+                            </button>
+                          )}
                         </div>
-
-                        {/* Button */}
-                        {currentUser && (
-                          <button
-                            onClick={(e) => handleAddToCart(product, e)}
-                            className={`w-full py-2 rounded-lg font-semibold text-sm transition-all ${
-                              isProductInCart(product)
-                                ? 'bg-green-500 text-white'
-                                : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-md active:scale-95'
-                            }`}
-                          >
-                            {isProductInCart(product) ? '✓ In Cart' : 'Add To Cart'}
-                          </button>
-                        )}
                       </div>
                     </div>
                   );
@@ -656,6 +748,71 @@ export default function HomePage({
           )}
         </div>
       </main>
+
+      {/* FLOATING MUSIC BUTTON */}
+      <button
+        ref={dragRef}
+        className={`floating-music-btn${musicPlaying ? ' playing' : ''}`}
+        style={{ right: btnPos.right, bottom: btnPos.bottom, position: 'fixed', cursor: 'grab', touchAction: 'none' }}
+        onMouseDown={onDragStart}
+        onTouchStart={onDragStart}
+        onClick={toggleMusic}
+        title={musicPlaying ? 'Music Off' : 'Music On'}
+      >
+        {musicPlaying ? (
+          <svg width="28" height="22" viewBox="0 0 28 22" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#f472b6"/>
+                <stop offset="25%" stopColor="#a78bfa"/>
+                <stop offset="50%" stopColor="#38bdf8"/>
+                <stop offset="75%" stopColor="#34d399"/>
+                <stop offset="100%" stopColor="#fbbf24"/>
+              </linearGradient>
+            </defs>
+            <rect x="0" y="6" width="3" height="10" rx="1.5" fill="url(#waveGrad)">
+              <animate attributeName="height" values="4;16;4" dur="0.8s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="9;3;9" dur="0.8s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="5" y="3" width="3" height="16" rx="1.5" fill="url(#waveGrad)">
+              <animate attributeName="height" values="16;4;16" dur="0.8s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="3;9;3" dur="0.8s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="10" y="1" width="3" height="20" rx="1.5" fill="url(#waveGrad)">
+              <animate attributeName="height" values="20;6;20" dur="0.7s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="1;8;1" dur="0.7s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="15" y="3" width="3" height="16" rx="1.5" fill="url(#waveGrad)">
+              <animate attributeName="height" values="6;16;6" dur="0.9s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="8;3;8" dur="0.9s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="20" y="6" width="3" height="10" rx="1.5" fill="url(#waveGrad)">
+              <animate attributeName="height" values="10;4;10" dur="0.75s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="6;9;6" dur="0.75s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="25" y="4" width="3" height="14" rx="1.5" fill="url(#waveGrad)">
+              <animate attributeName="height" values="4;14;4" dur="0.85s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="9;4;9" dur="0.85s" repeatCount="indefinite"/>
+            </rect>
+          </svg>
+        ) : (
+          <svg width="28" height="22" viewBox="0 0 28 22" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="waveGradOff" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.3)"/>
+                <stop offset="100%" stopColor="rgba(255,255,255,0.3)"/>
+              </linearGradient>
+            </defs>
+            <rect x="0" y="8" width="3" height="6" rx="1.5" fill="url(#waveGradOff)"/>
+            <rect x="5" y="6" width="3" height="10" rx="1.5" fill="url(#waveGradOff)"/>
+            <rect x="10" y="4" width="3" height="14" rx="1.5" fill="url(#waveGradOff)"/>
+            <rect x="15" y="6" width="3" height="10" rx="1.5" fill="url(#waveGradOff)"/>
+            <rect x="20" y="8" width="3" height="6" rx="1.5" fill="url(#waveGradOff)"/>
+            <rect x="25" y="6" width="3" height="10" rx="1.5" fill="url(#waveGradOff)"/>
+            <line x1="2" y1="2" x2="26" y2="20" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        )}
+      </button>
     </div>
   );
 }

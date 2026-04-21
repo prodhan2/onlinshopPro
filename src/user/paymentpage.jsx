@@ -30,79 +30,167 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function buildProofImage(order) {
+function buildProofImage(order, logoBase64) {
   const canvas = document.createElement('canvas');
-  canvas.width = 1200; canvas.height = 1600;
+  canvas.width = 1080; canvas.height = 1920;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas not supported');
 
-  ctx.fillStyle = '#f4f7fb';
-  ctx.fillRect(0, 0, 1200, 1600);
+  // Background
+  ctx.fillStyle = '#f0f4ff';
+  ctx.fillRect(0, 0, 1080, 1920);
 
-  const grad = ctx.createLinearGradient(0, 0, 1200, 240);
-  grad.addColorStop(0, '#0b57d0'); grad.addColorStop(1, '#1565c0');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1200, 250);
+  // Top gradient header
+  const headerGrad = ctx.createLinearGradient(0, 0, 1080, 320);
+  headerGrad.addColorStop(0, '#1e40af');
+  headerGrad.addColorStop(1, '#3b82f6');
+  ctx.fillStyle = headerGrad;
+  roundRect(ctx, 0, 0, 1080, 320, 0); ctx.fill();
 
-  ctx.fillStyle = '#fff'; ctx.font = '700 34px Arial';
-  ctx.fillText('Beautiful Dinajpur', 84, 74);
-  ctx.font = '400 20px Arial';
-  ctx.fillText('Payment confirmation proof', 84, 110);
+  // Header circle decoration
+  ctx.beginPath();
+  ctx.arc(950, -40, 200, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(100, 280, 150, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fill();
 
-  ctx.fillStyle = '#fff';
-  roundRect(ctx, 70, 120, 1060, 1360, 36); ctx.fill();
-
-  ctx.fillStyle = '#162033'; ctx.font = '700 42px Arial';
-  ctx.fillText('Order Payment Proof', 110, 200);
-  ctx.font = '400 22px Arial'; ctx.fillStyle = '#667085';
-  ctx.fillText(`Generated on ${formatDate(order.confirmedAt)}`, 110, 240);
-
-  function drawSection(startY, title, rows) {
-    ctx.fillStyle = '#162033'; ctx.font = '700 28px Arial';
-    ctx.fillText(title, 110, startY);
-    let y = startY + 52;
-    rows.forEach(([label, value], i) => {
-      if (i % 2 === 0) { ctx.fillStyle = '#f8fafc'; roundRect(ctx, 110, y - 30, 980, 54, 14); ctx.fill(); }
-      ctx.fillStyle = '#667085'; ctx.font = '600 20px Arial'; ctx.fillText(label, 135, y);
-      ctx.textAlign = 'right'; ctx.fillStyle = '#162033'; ctx.fillText(String(value || 'N/A'), 1060, y);
-      ctx.textAlign = 'left'; y += 56;
-    });
-    return y + 8;
+  // Logo
+  if (logoBase64) {
+    const img = new Image();
+    img.src = logoBase64;
+    ctx.drawImage(img, 60, 50, 160, 160);
   }
 
-  let y = 320;
-  y = drawSection(y, 'Order Details', [
-    ['Order ID', order.orderId], ['Customer', order.userName],
-    ['Phone', order.userPhone], ['Payment', order.paymentMethodLabel],
-    ['Transaction ID', order.transactionId || 'N/A'], ['Status', 'Confirmed'],
-  ]);
-  y = drawSection(y + 14, 'Delivery', [
-    ['Address', order.street], ['Area', order.area], ['Shipping Area', order.shippingArea],
-  ]);
+  // Header text
+  ctx.fillStyle = '#fff';
+  ctx.font = '800 52px Arial';
+  ctx.fillText('Beautiful Dinajpur', 250, 120);
+  ctx.font = '400 28px Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.fillText('Official Payment Receipt', 250, 165);
 
-  ctx.fillStyle = '#162033'; ctx.font = '700 28px Arial';
-  ctx.fillText('Items', 110, y + 28); y += 60;
+  // Date
+  ctx.font = '500 26px Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fillText(`Date: ${formatDate(order.confirmedAt)}`, 60, 280);
 
+  // Order ID badge
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  roundRect(ctx, 60, 300, 960, 60, 12); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '700 26px Arial';
+  ctx.fillText(`Order ID: #${order.orderId}`, 90, 340);
+
+  // White card
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, 40, 390, 1000, 1480, 28); ctx.fill();
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 40, 390, 1000, 1480, 28); ctx.stroke();
+
+  let y = 460;
+
+  // Section helper
+  function sectionTitle(title, icon) {
+    ctx.fillStyle = '#1e40af';
+    ctx.font = '800 32px Arial';
+    ctx.fillText(`${icon}  ${title}`, 80, y);
+    y += 16;
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(80, y, 920, 3);
+    y += 28;
+  }
+
+  function row(label, value, highlight = false) {
+    ctx.fillStyle = highlight ? '#eff6ff' : (y % 2 === 0 ? '#f8fafc' : '#fff');
+    roundRect(ctx, 80, y - 28, 920, 52, 10); ctx.fill();
+    ctx.fillStyle = '#64748b';
+    ctx.font = '500 24px Arial';
+    ctx.fillText(label, 105, y + 8);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = highlight ? '#1e40af' : '#1e293b';
+    ctx.font = highlight ? '800 26px Arial' : '600 24px Arial';
+    ctx.fillText(String(value || '—'), 975, y + 8);
+    ctx.textAlign = 'left';
+    y += 60;
+  }
+
+  // Customer Info
+  sectionTitle('Customer Details', '👤');
+  row('Name', order.userName);
+  row('Email', order.userEmail);
+  row('Phone', order.userPhone);
+  y += 20;
+
+  // Payment Info
+  sectionTitle('Payment Details', '💳');
+  row('Method', order.paymentMethodLabel);
+  row('Transaction ID', order.transactionId || 'N/A');
+  row('Status', '✅ Confirmed');
+  y += 20;
+
+  // Delivery Info
+  sectionTitle('Delivery Address', '📦');
+  row('Street', order.street);
+  row('Area', order.area);
+  row('Shipping Zone', order.shippingArea);
+  y += 20;
+
+  // Items
+  sectionTitle('Ordered Items', '🛒');
   order.items.forEach((item, i) => {
-    ctx.fillStyle = i % 2 === 0 ? '#f8fafc' : '#eef4ff';
-    roundRect(ctx, 110, y - 10, 980, 82, 18); ctx.fill();
-    ctx.fillStyle = '#162033'; ctx.font = '700 22px Arial'; ctx.fillText(item.name, 135, y + 22);
-    ctx.font = '400 19px Arial'; ctx.fillStyle = '#667085'; ctx.fillText(`Qty ${item.quantity}`, 135, y + 52);
-    ctx.textAlign = 'right'; ctx.fillStyle = '#0f4aa3'; ctx.font = '700 22px Arial';
-    ctx.fillText(formatMoney(item.total), 1060, y + 38); ctx.textAlign = 'left'; y += 96;
+    ctx.fillStyle = i % 2 === 0 ? '#f8fafc' : '#fff';
+    roundRect(ctx, 80, y - 28, 920, 60, 10); ctx.fill();
+    ctx.fillStyle = '#1e293b';
+    ctx.font = '600 24px Arial';
+    const name = item.name.length > 32 ? item.name.slice(0, 32) + '...' : item.name;
+    ctx.fillText(`${i + 1}. ${name}`, 105, y + 4);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '500 22px Arial';
+    ctx.fillText(`Qty: ${item.quantity}`, 105, y + 30);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#2563eb';
+    ctx.font = '700 26px Arial';
+    ctx.fillText(formatMoney(item.total), 975, y + 16);
+    ctx.textAlign = 'left';
+    y += 72;
   });
+  y += 20;
 
-  ctx.fillStyle = '#f8fafc'; roundRect(ctx, 110, y + 14, 980, 170, 24); ctx.fill();
-  const s = y + 58;
-  [[`Subtotal`, formatMoney(order.subtotal)], [`Shipping`, formatMoney(order.shippingCharge)]].forEach(([l, v], i) => {
-    ctx.fillStyle = '#667085'; ctx.font = '600 22px Arial'; ctx.fillText(l, 140, s + i * 40);
-    ctx.textAlign = 'right'; ctx.fillStyle = '#162033'; ctx.fillText(v, 1060, s + i * 40); ctx.textAlign = 'left';
-  });
-  ctx.fillStyle = '#162033'; ctx.font = '700 28px Arial'; ctx.fillText('Total', 140, s + 92);
-  ctx.textAlign = 'right'; ctx.fillStyle = '#0f4aa3'; ctx.fillText(formatMoney(order.total), 1060, s + 92); ctx.textAlign = 'left';
+  // Summary box
+  ctx.fillStyle = '#eff6ff';
+  roundRect(ctx, 80, y, 920, 200, 16); ctx.fill();
+  ctx.strokeStyle = '#bfdbfe';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 80, y, 920, 200, 16); ctx.stroke();
 
-  ctx.textAlign = 'center'; ctx.fillStyle = '#0b57d0'; ctx.font = '700 24px Arial';
-  ctx.fillText('Powered by Beautiful Dinajpur', 600, 1510); ctx.textAlign = 'left';
+  y += 50;
+  ctx.fillStyle = '#64748b'; ctx.font = '500 26px Arial';
+  ctx.fillText('Subtotal', 110, y);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#1e293b'; ctx.font = '600 26px Arial';
+  ctx.fillText(formatMoney(order.subtotal), 975, y); ctx.textAlign = 'left';
+  y += 50;
+  ctx.fillStyle = '#64748b'; ctx.font = '500 26px Arial';
+  ctx.fillText('Shipping', 110, y);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#1e293b'; ctx.font = '600 26px Arial';
+  ctx.fillText(formatMoney(order.shippingCharge), 975, y); ctx.textAlign = 'left';
+  y += 16;
+  ctx.fillStyle = '#bfdbfe'; ctx.fillRect(110, y, 860, 2); y += 20;
+  ctx.fillStyle = '#1e40af'; ctx.font = '800 34px Arial';
+  ctx.fillText('Total', 110, y);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#1e40af'; ctx.font = '800 36px Arial';
+  ctx.fillText(formatMoney(order.total), 975, y); ctx.textAlign = 'left';
+
+  // Footer
+  ctx.fillStyle = '#1e40af';
+  roundRect(ctx, 0, 1840, 1080, 80, 0); ctx.fill();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff'; ctx.font = '600 26px Arial';
+  ctx.fillText('Thank you for shopping with Beautiful Dinajpur', 540, 1888);
+  ctx.textAlign = 'left';
 
   return canvas.toDataURL('image/png');
 }
@@ -161,9 +249,25 @@ export default function PaymentPage({ checkout, onBack, onDone }) {
   function handleDownload() {
     if (!done) return;
     try {
-      const url = buildProofImage(done);
-      const a = document.createElement('a');
-      a.href = url; a.download = `proof-${done.orderId}.png`; a.click();
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width || 160;
+        tempCanvas.height = img.height || 160;
+        const tCtx = tempCanvas.getContext('2d');
+        tCtx.drawImage(img, 0, 0);
+        const logoBase64 = tempCanvas.toDataURL('image/png');
+        const url = buildProofImage(done, logoBase64);
+        const a = document.createElement('a');
+        a.href = url; a.download = `receipt-${done.orderId}.png`; a.click();
+      };
+      img.onerror = () => {
+        const url = buildProofImage(done, null);
+        const a = document.createElement('a');
+        a.href = url; a.download = `receipt-${done.orderId}.png`; a.click();
+      };
+      img.src = logo;
     } catch { setStatus('download-error'); }
   }
 

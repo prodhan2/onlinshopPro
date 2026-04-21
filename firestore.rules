@@ -41,9 +41,9 @@ service cloud.firestore {
     
     // Orders collection - Users see own, admins see all
     match /orders/{orderId} {
-      allow read: if isOrderOwner(resource.data.userUid);
-      allow write: if isOrderOwner(resource.data.userUid) && !resource.data.status; // Only create
-      allow update: if isAdmin() || (isOrderOwner(resource.data.userUid) && !request.resource.data.status.exists()); // Status updates by admin only
+      allow read: if request.auth != null && (isOrderOwner(resource.data.userUid) || isAdmin());
+      allow create: if request.auth != null && request.resource.data.userUid == request.auth.uid;
+      allow update: if request.auth != null && (isAdmin() || isOrderOwner(resource.data.userUid));
       allow delete: if isAdmin();
     }
     

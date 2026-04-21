@@ -3,6 +3,8 @@ import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc, onSnapshot } fr
 import { db } from '../firebase';
 import { convertToWebP } from '../bstoreapp/webpConverter';
 import ConfirmDialog from '../components/ConfirmDialog';
+import CatalogListView, { CatalogListItem, CatalogDetailModal } from './CatalogListView';
+import { FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi';
 import logo from '../bstoreapp/assets/images/logo.png';
 import './catalogAdmin.css';
 
@@ -98,6 +100,8 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   const [busy, setBusy] = useState(false);
   const [activeSection, setActiveSection] = useState('categories');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
+  const mobileDropdownRef = useRef(null);
   const [mobileView, setMobileView] = useState('list');
   const [categoryFile, setCategoryFile] = useState(null);
   const [initialLoadState, setInitialLoadState] = useState({
@@ -121,10 +125,31 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   const [zoomedImage, setZoomedImage] = useState(null);
   const [coverImageId, setCoverImageId] = useState(null);
 
+  // Detail Modal States
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedDetailItem, setSelectedDetailItem] = useState(null);
+  const [detailModalType, setDetailModalType] = useState(null); // 'category', 'product', 'payment', 'banner'
+  const [searchQuery, setSearchQuery] = useState({
+    categories: '',
+    products: '',
+    payments: '',
+    banners: '',
+  });
+
   const nextCategoryId = useMemo(() => generateNextCategoryId(categories), [categories]);
   const nextProductId = useMemo(() => generateNextProductId(products), [products]);
   const nextBannerNo = useMemo(() => generateNextBannerNo(banners), [banners]);
-  const actor = useMemo(() => currentUser ? { displayName: currentUser.displayName, photoURL: currentUser.photoURL } : null, [currentUser]);
+  const actor = useMemo(
+    () =>
+      currentUser
+        ? {
+            uid: currentUser.uid,
+            displayName: currentUser.displayName || currentUser.email || 'Admin',
+            photoURL: currentUser.photoURL || '',
+          }
+        : null,
+    [currentUser],
+  );
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => String(a?.name || a?.id || '').localeCompare(String(b?.name || b?.id || ''))),
     [categories],
@@ -175,6 +200,17 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   useEffect(() => {
     setMobileView('list');
   }, [activeSection]);
+
+  useEffect(() => {
+    if (!mobileDropdownOpen) return;
+    const handler = (e) => {
+      if (mobileDropdownRef.current && !mobileDropdownRef.current.contains(e.target)) {
+        setMobileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [mobileDropdownOpen]);
 
   useEffect(() => {
     if (!authReady || !canEdit) return;
@@ -274,7 +310,21 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     }
   };
 
+  // Helper functions for detail modals
+  const openDetailModal = (item, type) => {
+    setSelectedDetailItem(item);
+    setDetailModalType(type);
+    setDetailModalOpen(true);
+  };
+
+  const closeDetailModal = () => {
+    setDetailModalOpen(false);
+    setSelectedDetailItem(null);
+    setDetailModalType(null);
+  };
+
   const handleEditCategory = (item) => {
+    closeDetailModal();
     setEditingCategoryDocId(item._docId);
     setCategoryForm({
       id: item.id || '',
@@ -284,6 +334,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
     });
     setCategoryFile(null);
     setStatus(`Editing category: ${item.name}`);
+    setMobileView('form');
   };
 
   const handleDeleteCategory = (item) => {
@@ -380,14 +431,14 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
       setProducts(next);
       setEditingProductDocId(null);
       setProductForm({
-        id: nextProductId,
+        id: '',
         name: '',
         description: '',
         image: '',
         price: '',
         discount: '0',
         stock: '0',
-        categoryId: categories[0]?.id || '',
+        categoryId: sortedCategories[0]?.id || '',
         rating: '0',
         available: true,
       });
@@ -406,6 +457,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
   };
 
   const handleEditProduct = (item) => {
+    closeDetailModal();
     setEditingProductDocId(item._docId);
     setProductForm({
       id: item.id || '',
@@ -432,14 +484,14 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
         if (editingProductDocId === item._docId) {
           setEditingProductDocId(null);
           setProductForm({
-            id: nextProductId,
+            id: '',
             name: '',
             description: '',
             image: '',
             price: '',
             discount: '0',
             stock: '0',
-            categoryId: '',
+            categoryId: sortedCategories[0]?.id || '',
             rating: '0',
             available: true,
           });
@@ -679,8 +731,38 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           </button>
           <h1 className="catalog-admin-topbar-title">Catalog Manager</h1>
           <div className="catalog-admin-topbar-meta">
-            <div>
-              {products.length} products
+            <div className="catalog-admin-topbar-desktop-meta">{products.length} products</div>
+            <div className="catalog-admin-mobile-dropdown-wrap" ref={mobileDropdownRef}>
+              <button
+                type="button"
+                className="catalog-admin-mobile-menu-btn"
+                onClick={() => setMobileDropdownOpen((v) => !v)}
+                aria-label="Open section menu"
+              >
+                <span className="catalog-admin-mobile-menu-label">
+                  {activeSection === 'categories' ? '📁 Categories'
+                    : activeSection === 'products' ? '🛍️ Products'
+                    : activeSection === 'banners' ? '🎨 Banners'
+                    : '💳 Payment'}
+                </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: mobileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {mobileDropdownOpen && (
+                <div className="catalog-admin-mobile-dropdown">
+                  {[['categories', '📁 Categories'], ['products', '🛍️ Products'], ['banners', '🎨 Banners'], ['payment', '💳 Payment']].map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`catalog-admin-mobile-dropdown-item ${activeSection === key ? 'is-active' : ''}`}
+                      onClick={() => { setActiveSection(key); setMobileDropdownOpen(false); }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -735,7 +817,7 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
 
         <div className="catalog-admin-grid">
         {activeSection === 'categories' ? (
-        <>
+        <><div className="catalog-toggle-row"><button type="button" className={`catalog-toggle-btn ${mobileView !== "form" ? "catalog-toggle-btn-active" : ""}`} onClick={() => setMobileView("list")}>List ({categories.length})</button><button type="button" className={`catalog-toggle-btn ${mobileView === "form" ? "catalog-toggle-btn-active" : ""}`} onClick={() => setMobileView("form")}>{editingCategoryDocId ? "Edit" : "+ Add"}</button></div>
           {/* Mobile View Toggle Button */}
           <button
             type="button"
@@ -815,43 +897,60 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           </div>
         </form>
 
-          {/* List Section */}
-          <div className={`catalog-card catalog-list-section ${mobileView === 'form' ? 'hidden-mobile' : ''}`}>
-            <div className="catalog-section-divider">
-              <span>Category List</span>
-            </div>
-            <h4>Categories ({categories.length})</h4>
-            <ul>
-              {sortedCategories.map((item) => (
-                <li key={item._docId}>
-                  <div className="item-main">
-                    {item.iconUrl ? (
-                      <img 
-                        src={item.iconUrl} 
-                        alt={item.name || 'Category'} 
-                        className="catalog-item-image catalog-item-image--category"
-                        onClick={() => setZoomedImage(item.iconUrl)}
-                      />
-                    ) : item.createdBy?.photoURL ? (
-                      <img src={item.createdBy.photoURL} alt={item.createdBy.displayName || 'Creator'} />
-                    ) : null}
-                    <span>{item.name}</span>
-                    <code>{item.id || item._docId}</code>
-                    <small>By: {item.createdBy?.displayName || 'Unknown'}</small>
-                  </div>
-                  <div className="item-actions">
-                    <button type="button" className="btn mini" onClick={() => handleEditCategory(item)}>Edit</button>
-                    <button type="button" className="btn mini danger" onClick={() => handleDeleteCategory(item)}>Delete</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          {/* List Section with ListView */}
+          <div className={`${mobileView === 'form' ? 'hidden-mobile' : ''}`}>
+            <CatalogListView
+              items={sortedCategories.filter(item => 
+                item.name.toLowerCase().includes(searchQuery.categories.toLowerCase()) ||
+                item.id.toLowerCase().includes(searchQuery.categories.toLowerCase())
+              )}
+              title="Categories"
+              itemCount={categories.length}
+              searchValue={searchQuery.categories}
+              onSearchChange={(value) => setSearchQuery(s => ({ ...s, categories: value }))}
+              onAddClick={() => {
+                setEditingCategoryDocId(null);
+                setCategoryForm({ id: nextCategoryId, name: '', description: '', iconUrl: '' });
+                setCategoryFile(null);
+                setMobileView('form');
+              }}
+              onItemClick={(item) => openDetailModal(item, 'category')}
+              renderItem={(item) => (
+                <CatalogListItem
+                  thumbnail={item.iconUrl}
+                  title={item.name}
+                  subtitle={`ID: ${item.id}`}
+                  meta={[
+                    { label: item.createdBy?.displayName || 'Unknown' },
+                  ]}
+                  actions={[
+                    {
+                      icon: <FiEdit2 className="w-4 h-4" />,
+                      label: 'Edit',
+                      onClick: (e) => {
+                        e.stopPropagation();
+                        handleEditCategory(item);
+                      },
+                    },
+                    {
+                      icon: <FiTrash2 className="w-4 h-4" />,
+                      label: 'Delete',
+                      danger: true,
+                      onClick: (e) => {
+                        e.stopPropagation();
+                        handleDeleteCategory(item);
+                      },
+                    },
+                  ]}
+                />
+              )}
+            />
           </div>
         </>
         ) : null}
 
         {activeSection === 'products' ? (
-        <>
+        <><div className="catalog-toggle-row"><button type="button" className={`catalog-toggle-btn ${mobileView !== "form" ? "catalog-toggle-btn-active" : ""}`} onClick={() => setMobileView("list")}>List ({products.length})</button><button type="button" className={`catalog-toggle-btn ${mobileView === "form" ? "catalog-toggle-btn-active" : ""}`} onClick={() => setMobileView("form")}>{editingProductDocId ? "Edit" : "+ Add"}</button></div>
           {/* Mobile View Toggle Button */}
           <button
             type="button"
@@ -1079,44 +1178,71 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           </div>
         </form>
 
-          {/* List Section */}
-          <div className={`catalog-card catalog-list-section ${mobileView === 'form' ? 'hidden-mobile' : ''}`}>
-            <div className="catalog-section-divider">
-              <span>Product List</span>
-            </div>
-            <h4>Products ({products.length})</h4>
-            <ul>
-              {[...products].reverse().map((item) => {
+          {/* List Section with ListView */}
+          <div className={`${mobileView === 'form' ? 'hidden-mobile' : ''}`}>
+            <CatalogListView
+              items={[...products].reverse().filter(item => 
+                item.name.toLowerCase().includes(searchQuery.products.toLowerCase()) ||
+                item.id.toLowerCase().includes(searchQuery.products.toLowerCase())
+              )}
+              title="Products"
+              itemCount={products.length}
+              searchValue={searchQuery.products}
+              onSearchChange={(value) => setSearchQuery(s => ({ ...s, products: value }))}
+              onAddClick={() => {
+                setEditingProductDocId(null);
+                setProductForm({
+                  id: nextProductId,
+                  name: '',
+                  description: '',
+                  image: '',
+                  price: '',
+                  discount: '0',
+                  stock: '0',
+                  categoryId: sortedCategories[0]?.id || '',
+                  rating: '0',
+                  available: true,
+                });
+                setProductFile([]);
+                setMobileView('form');
+              }}
+              onItemClick={(item) => openDetailModal(item, 'product')}
+              renderItem={(item) => {
                 const firstImage = splitImages(item.image)[0];
                 return (
-                  <li key={item._docId}>
-                    <div className="item-main">
-                      {firstImage ? (
-                        <img 
-                          src={firstImage} 
-                          alt={item.name || 'Product'} 
-                          className="catalog-item-image catalog-item-image--product"
-                          onClick={() => setZoomedImage(firstImage)}
-                        />
-                      ) : item.createdBy?.photoURL ? (
-                        <img src={item.createdBy.photoURL} alt={item.createdBy.displayName || 'Creator'} />
-                      ) : null}
-                      <div className="item-info">
-                        <span>{item.name}</span>
-                        <code>৳{item.price}</code>
-                        <small>
-                          By: {item.createdBy?.displayName || 'Unknown'} | Images: {splitImages(item.image).length}
-                        </small>
-                      </div>
-                    </div>
-                    <div className="item-actions">
-                      <button type="button" className="btn mini" onClick={() => handleEditProduct(item)}>Edit</button>
-                      <button type="button" className="btn mini danger" onClick={() => handleDeleteProduct(item)}>Delete</button>
-                    </div>
-                  </li>
+                  <CatalogListItem
+                    thumbnail={firstImage}
+                    title={item.name}
+                    subtitle={`৳${item.price} • ${item.stock || 0} in stock`}
+                    status={item.available ? 'Available' : 'Unavailable'}
+                    statusColor={item.available ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}
+                    meta={[
+                      { label: `${splitImages(item.image).length} images` },
+                      { label: `Rating: ${item.rating || 0}` },
+                    ]}
+                    actions={[
+                      {
+                        icon: <FiEdit2 className="w-4 h-4" />,
+                        label: 'Edit',
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          handleEditProduct(item);
+                        },
+                      },
+                      {
+                        icon: <FiTrash2 className="w-4 h-4" />,
+                        label: 'Delete',
+                        danger: true,
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          handleDeleteProduct(item);
+                        },
+                      },
+                    ]}
+                  />
                 );
-              })}
-            </ul>
+              }}
+            />
           </div>
         </>
         ) : null}
@@ -1206,30 +1332,54 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
             ) : null}
           </div>
 
-          <div className="list-wrap">
-            <div className="catalog-section-divider catalog-section-divider--inner">
-              <span>Saved Payment Areas</span>
-            </div>
-            <h4>Payment Details ({paymentDetails.length})</h4>
-            <ul>
-              {paymentDetails.map((item) => (
-                <li key={item._docId}>
-                  <div className="item-main">
-                    {item.createdBy?.photoURL ? <img src={item.createdBy.photoURL} alt={item.createdBy.displayName || 'Creator'} /> : null}
-                    <span>{item.area_name}</span>
-                    <code>Charge: {item.charge || 0}</code>
-                    <small>
-                      Contact: {item.contact_number || 'N/A'} | By: {item.createdBy?.displayName || 'Unknown'}
-                    </small>
-                  </div>
-                  <div className="item-actions">
-                    <button type="button" className="btn mini" onClick={() => handleEditPayment(item)}>Edit</button>
-                    <button type="button" className="btn mini danger" onClick={() => handleDeletePayment(item)}>Delete</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <CatalogListView
+            items={paymentDetails.filter(item =>
+              item.area_name.toLowerCase().includes(searchQuery.payments.toLowerCase())
+            )}
+            title="Payment Details"
+            itemCount={paymentDetails.length}
+            searchValue={searchQuery.payments}
+            onSearchChange={(value) => setSearchQuery(s => ({ ...s, payments: value }))}
+            onAddClick={() => {
+              setEditingPaymentDocId(null);
+              setPaymentForm({
+                area_name: '',
+                charge: '',
+                contact_number: '',
+                COD_instructions: '',
+                bKash_instructions: '',
+              });
+            }}
+            onItemClick={(item) => openDetailModal(item, 'payment')}
+            renderItem={(item) => (
+              <CatalogListItem
+                title={item.area_name}
+                subtitle={`Charge: ৳${item.charge || 0}`}
+                meta={[
+                  { label: item.contact_number || 'No contact' },
+                ]}
+                actions={[
+                  {
+                    icon: <FiEdit2 className="w-4 h-4" />,
+                    label: 'Edit',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      handleEditPayment(item);
+                    },
+                  },
+                  {
+                    icon: <FiTrash2 className="w-4 h-4" />,
+                    label: 'Delete',
+                    danger: true,
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      handleDeletePayment(item);
+                    },
+                  },
+                ]}
+              />
+            )}
+          />
         </form>
         ) : null}
 
@@ -1313,28 +1463,50 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
             ) : null}
           </div>
 
-          <div className="list-wrap">
-            <div className="catalog-section-divider catalog-section-divider--inner">
-              <span>Banner List</span>
-            </div>
-            <h4>Banners ({banners.length})</h4>
-            <ul>
-              {banners.map((item) => (
-                <li key={item._docId}>
-                  <div className="item-main">
-                    {item.imageUrl ? <img src={item.imageUrl} alt={`Banner ${item.no}`} /> : null}
-                    <span>No. {item.no}</span>
-                    <code>{item.show ? 'Show: TRUE' : 'Show: FALSE'}</code>
-                    <small>{item.description || 'No description'}</small>
-                  </div>
-                  <div className="item-actions">
-                    <button type="button" className="btn mini" onClick={() => handleEditBanner(item)}>Edit</button>
-                    <button type="button" className="btn mini danger" onClick={() => handleDeleteBanner(item)}>Delete</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <CatalogListView
+            items={banners.filter(item =>
+              String(item.no).includes(searchQuery.banners) || 
+              item.description.toLowerCase().includes(searchQuery.banners.toLowerCase())
+            )}
+            title="Banners"
+            itemCount={banners.length}
+            searchValue={searchQuery.banners}
+            onSearchChange={(value) => setSearchQuery(s => ({ ...s, banners: value }))}
+            onAddClick={() => {
+              setEditingBannerDocId(null);
+              setBannerForm({ no: nextBannerNo, imageUrl: '', description: '', show: true });
+              setBannerFile(null);
+            }}
+            onItemClick={(item) => openDetailModal(item, 'banner')}
+            renderItem={(item) => (
+              <CatalogListItem
+                thumbnail={item.imageUrl}
+                title={`Banner #${item.no}`}
+                subtitle={item.description || 'No description'}
+                status={item.show ? 'Visible' : 'Hidden'}
+                statusColor={item.show ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}
+                actions={[
+                  {
+                    icon: <FiEdit2 className="w-4 h-4" />,
+                    label: 'Edit',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      handleEditBanner(item);
+                    },
+                  },
+                  {
+                    icon: <FiTrash2 className="w-4 h-4" />,
+                    label: 'Delete',
+                    danger: true,
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      handleDeleteBanner(item);
+                    },
+                  },
+                ]}
+              />
+            )}
+          />
         </form>
         ) : null}
         </div>
@@ -1398,6 +1570,164 @@ export default function CatalogAdminPage({ onBack, canEdit, authReady, currentUs
           </div>
         </div>
       )}
+
+      {/* Detail Modals */}
+      <CatalogDetailModal
+        isOpen={detailModalOpen && detailModalType === 'category'}
+        title={selectedDetailItem?.name || 'Category Details'}
+        item={selectedDetailItem}
+        onClose={closeDetailModal}
+        onEdit={() => handleEditCategory(selectedDetailItem)}
+        onDelete={() => {
+          closeDetailModal();
+          handleDeleteCategory(selectedDetailItem);
+        }}
+      >
+        {selectedDetailItem && (
+          <div className="catalog-modal-details">
+            {selectedDetailItem.iconUrl && (
+              <div style={{ marginBottom: '1rem' }}>
+                <img 
+                  src={selectedDetailItem.iconUrl} 
+                  alt={selectedDetailItem.name}
+                  style={{ maxWidth: '100%', borderRadius: '12px' }}
+                />
+              </div>
+            )}
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>ID</p>
+              <p style={{ margin: 0, fontWeight: 600 }}>{selectedDetailItem.id}</p>
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Description</p>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{selectedDetailItem.description || 'No description'}</p>
+            </div>
+            <div>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Created By</p>
+              <p style={{ margin: 0 }}>{selectedDetailItem.createdBy?.displayName || 'Unknown'}</p>
+            </div>
+          </div>
+        )}
+      </CatalogDetailModal>
+
+      <CatalogDetailModal
+        isOpen={detailModalOpen && detailModalType === 'product'}
+        title={selectedDetailItem?.name || 'Product Details'}
+        item={selectedDetailItem}
+        onClose={closeDetailModal}
+        onEdit={() => handleEditProduct(selectedDetailItem)}
+        onDelete={() => {
+          closeDetailModal();
+          handleDeleteProduct(selectedDetailItem);
+        }}
+      >
+        {selectedDetailItem && (
+          <div className="catalog-modal-details">
+            {splitImages(selectedDetailItem.image)[0] && (
+              <div style={{ marginBottom: '1rem' }}>
+                <img 
+                  src={splitImages(selectedDetailItem.image)[0]} 
+                  alt={selectedDetailItem.name}
+                  style={{ maxWidth: '100%', borderRadius: '12px' }}
+                />
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Price</p>
+                <p style={{ margin: 0, fontWeight: 600 }}>৳{selectedDetailItem.price}</p>
+              </div>
+              <div>
+                <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Stock</p>
+                <p style={{ margin: 0, fontWeight: 600 }}>{selectedDetailItem.stock} units</p>
+              </div>
+              <div>
+                <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Discount</p>
+                <p style={{ margin: 0, fontWeight: 600 }}>{selectedDetailItem.discount}%</p>
+              </div>
+              <div>
+                <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Rating</p>
+                <p style={{ margin: 0, fontWeight: 600 }}>⭐ {selectedDetailItem.rating}</p>
+              </div>
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Description</p>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{selectedDetailItem.description || 'No description'}</p>
+            </div>
+            <div>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Images</p>
+              <p style={{ margin: 0, fontWeight: 600 }}>{splitImages(selectedDetailItem.image).length} image(s)</p>
+            </div>
+          </div>
+        )}
+      </CatalogDetailModal>
+
+      <CatalogDetailModal
+        isOpen={detailModalOpen && detailModalType === 'payment'}
+        title={selectedDetailItem?.area_name || 'Payment Details'}
+        item={selectedDetailItem}
+        onClose={closeDetailModal}
+        onEdit={() => handleEditPayment(selectedDetailItem)}
+        onDelete={() => {
+          closeDetailModal();
+          handleDeletePayment(selectedDetailItem);
+        }}
+      >
+        {selectedDetailItem && (
+          <div className="catalog-modal-details">
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Charge</p>
+              <p style={{ margin: 0, fontWeight: 600 }}>৳{selectedDetailItem.charge || 0}</p>
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Contact Number</p>
+              <p style={{ margin: 0 }}>{selectedDetailItem.contact_number || 'N/A'}</p>
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>COD Instructions</p>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{selectedDetailItem.COD_instructions || 'No instructions'}</p>
+            </div>
+            <div>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>bKash Instructions</p>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{selectedDetailItem.bKash_instructions || 'No instructions'}</p>
+            </div>
+          </div>
+        )}
+      </CatalogDetailModal>
+
+      <CatalogDetailModal
+        isOpen={detailModalOpen && detailModalType === 'banner'}
+        title={`Banner #${selectedDetailItem?.no}`}
+        item={selectedDetailItem}
+        onClose={closeDetailModal}
+        onEdit={() => handleEditBanner(selectedDetailItem)}
+        onDelete={() => {
+          closeDetailModal();
+          handleDeleteBanner(selectedDetailItem);
+        }}
+      >
+        {selectedDetailItem && (
+          <div className="catalog-modal-details">
+            {selectedDetailItem.imageUrl && (
+              <div style={{ marginBottom: '1rem' }}>
+                <img 
+                  src={selectedDetailItem.imageUrl} 
+                  alt={`Banner ${selectedDetailItem.no}`}
+                  style={{ maxWidth: '100%', borderRadius: '12px' }}
+                />
+              </div>
+            )}
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Status</p>
+              <p style={{ margin: 0, fontWeight: 600 }}>{selectedDetailItem.show ? '✓ Visible' : '✗ Hidden'}</p>
+            </div>
+            <div>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontSize: '0.85rem' }}>Description</p>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{selectedDetailItem.description || 'No description'}</p>
+            </div>
+          </div>
+        )}
+      </CatalogDetailModal>
     </section>
   );
 }

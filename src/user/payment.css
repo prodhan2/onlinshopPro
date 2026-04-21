@@ -1,0 +1,309 @@
+.pp-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* App Bar */
+.pp-appbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #e0f2fe;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.pp-back {
+  width: 36px; height: 36px;
+  border: none; border-radius: 10px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.pp-back:hover { background: #e2e8f0; }
+
+.pp-appbar-center {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pp-appbar-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+}
+
+.pp-appbar-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Body */
+.pp-body {
+  flex: 1;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+  padding-bottom: 2rem;
+}
+
+/* Section */
+.pp-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.1rem 1.1rem 1.25rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.pp-section-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #3b82f6;
+  margin: 0 0 0.85rem;
+}
+
+/* Order items */
+.pp-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+}
+
+.pp-item-name {
+  font-size: 0.88rem;
+  color: #1e293b;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pp-item-qty {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.pp-item-price {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+  flex-shrink: 0;
+}
+
+.pp-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 0.5rem 0;
+}
+
+.pp-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: #64748b;
+  padding: 0.25rem 0;
+}
+
+.pp-grand-total {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e293b;
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  border-top: 2px solid #f1f5f9;
+}
+
+/* Fields */
+.pp-field {
+  margin-bottom: 0.85rem;
+}
+.pp-field:last-child { margin-bottom: 0; }
+
+.pp-field label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pp-field input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: #f8fafc;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.pp-field input:focus {
+  border-color: #3b82f6;
+  background: #fff;
+}
+
+/* Payment methods */
+.pp-methods {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+.pp-method {
+  padding: 0.7rem 0.5rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.pp-method:hover { border-color: #cbd5e1; background: #fff; }
+.pp-method-active {
+  background: #fff;
+  font-weight: 700;
+}
+
+/* Info box */
+.pp-info {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  color: #1e40af;
+  line-height: 1.5;
+}
+
+/* Alert */
+.pp-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.pp-alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+/* Done state */
+.pp-done {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem 1.25rem;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pp-done-check {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 6px 20px rgba(16,185,129,0.3);
+  animation: pp-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes pp-pop { from { transform: scale(0); } to { transform: scale(1); } }
+
+.pp-done h3 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+.pp-done p {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 0 0 0.75rem;
+}
+
+/* Buttons */
+.pp-btn {
+  width: 100%;
+  padding: 0.95rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.pp-btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(59,130,246,0.3);
+}
+.pp-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(59,130,246,0.4);
+}
+.pp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.pp-btn-green {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(16,185,129,0.25);
+}
+.pp-btn-green:hover { transform: translateY(-1px); }
+
+.pp-btn-outline {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  color: #475569;
+}
+.pp-btn-outline:hover { background: #f1f5f9; }
+
+/* Spinner */
+.pp-spinner {
+  width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pp-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes pp-spin { to { transform: rotate(360deg); } }

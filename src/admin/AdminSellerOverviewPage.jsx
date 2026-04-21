@@ -5,17 +5,16 @@ import { db } from '../firebase';
 import {
   FiAward,
   FiDownload,
-  FiSearch,
   FiRefreshCw,
   FiArrowLeft,
   FiPackage,
   FiShoppingBag,
   FiDollarSign,
-  FiUser,
-  FiMail,
   FiTrendingUp,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
+import { AdminListTileSeller, SellerDetailModal } from './components';
+import { AdminListView } from './components';
 
 const CACHE_KEYS = {
   profiles: 'admin-sellers-profiles',
@@ -45,7 +44,8 @@ export default function AdminSellerOverviewPage({ currentUser }) {
   const [orders, setOrders] = useState(() => readCache(CACHE_KEYS.orders, []));
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedSeller, setExpandedSeller] = useState(null);
+  const [selectedSeller, setSelectedSeller] = useState(null);
+  const [selectedRank, setSelectedRank] = useState(null);
 
   async function loadData() {
     setLoading(true);
@@ -163,7 +163,6 @@ export default function AdminSellerOverviewPage({ currentUser }) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header
     doc.setFillColor(67, 233, 123);
     doc.rect(0, 0, pageWidth, 40, 'F');
     doc.setTextColor(255, 255, 255);
@@ -173,7 +172,6 @@ export default function AdminSellerOverviewPage({ currentUser }) {
     doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 28, { align: 'center' });
     doc.text(`Total Sellers: ${filteredSellers.length}`, pageWidth / 2, 35, { align: 'center' });
 
-    // Summary
     doc.setTextColor(0, 0, 0);
     let y = 50;
     doc.setFontSize(14);
@@ -187,7 +185,6 @@ export default function AdminSellerOverviewPage({ currentUser }) {
     doc.text(`Total Orders: ${totalOrders}`, 14, y); y += 7;
     doc.text(`Total Confirmed Revenue: ৳${totalRevenue.toLocaleString()}`, 14, y); y += 12;
 
-    // Seller Details
     doc.setFontSize(14);
     doc.text('Seller Details', 14, y);
     y += 8;
@@ -219,140 +216,59 @@ export default function AdminSellerOverviewPage({ currentUser }) {
   const totalOrders = filteredSellers.reduce((sum, s) => sum + s.orderCount, 0);
   const totalRevenue = filteredSellers.reduce((sum, s) => sum + s.confirmedRevenue, 0);
 
+  const stats = [
+    { icon: <FiAward className="w-6 h-6" />, value: filteredSellers.length, label: 'Total Sellers', bgColor: 'bg-emerald-100', color: 'text-emerald-600' },
+    { icon: <FiPackage className="w-6 h-6" />, value: totalProducts, label: 'Products', bgColor: 'bg-blue-100', color: 'text-blue-600' },
+    { icon: <FiShoppingBag className="w-6 h-6" />, value: totalOrders, label: 'Orders', bgColor: 'bg-pink-100', color: 'text-pink-600' },
+    { icon: <FiDollarSign className="w-6 h-6" />, value: `৳${totalRevenue.toLocaleString()}`, label: 'Revenue', bgColor: 'bg-amber-100', color: 'text-amber-600' },
+  ];
+
   return (
-    <section className="admin-sub-page">
-      <div className="admin-sub-header">
-        <button className="btn btn-back" onClick={() => navigate('/admin-dashboard')}>
-          <FiArrowLeft /> Back to Dashboard
-        </button>
-        <div className="admin-sub-header-title">
-          <FiAward /> Seller Overview
-        </div>
-        <div className="admin-sub-header-actions">
-          <button className="btn btn-refresh" onClick={loadData} disabled={loading}>
-            <FiRefreshCw className={loading ? 'spin' : ''} />
-            {loading ? 'Loading...' : 'Refresh'}
+    <div className="admin-seller-overview-page animate-fade-in pb-20">
+      <AdminListView
+        title="Seller Overview"
+        subtitle="View and manage all sellers"
+        loading={loading}
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search sellers by name, email, or phone..."
+        onRefresh={loadData}
+        refreshLabel="Refresh"
+        stats={stats}
+        emptyIcon={FiAward}
+        emptyMessage={searchQuery ? 'No sellers match your search' : 'No sellers found'}
+        actions={
+          <button 
+            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+            onClick={downloadPDF}
+          >
+            <FiDownload className="w-4 h-4" />
+            Download PDF
           </button>
-          <button className="btn btn-download" onClick={downloadPDF}>
-            <FiDownload /> Download PDF
-          </button>
-        </div>
-      </div>
-
-      <div className="admin-sub-stats">
-        <div className="sub-stat">
-          <FiAward className="sub-stat-icon" style={{ color: '#43e97b' }} />
-          <div className="sub-stat-info">
-            <span className="sub-stat-value">{filteredSellers.length}</span>
-            <span className="sub-stat-label">Total Sellers</span>
-          </div>
-        </div>
-        <div className="sub-stat">
-          <FiPackage className="sub-stat-icon" style={{ color: '#4facfe' }} />
-          <div className="sub-stat-info">
-            <span className="sub-stat-value">{totalProducts}</span>
-            <span className="sub-stat-label">Products</span>
-          </div>
-        </div>
-        <div className="sub-stat">
-          <FiShoppingBag className="sub-stat-icon" style={{ color: '#fa709a' }} />
-          <div className="sub-stat-info">
-            <span className="sub-stat-value">{totalOrders}</span>
-            <span className="sub-stat-label">Orders</span>
-          </div>
-        </div>
-        <div className="sub-stat">
-          <FiDollarSign className="sub-stat-icon" style={{ color: '#fee140' }} />
-          <div className="sub-stat-info">
-            <span className="sub-stat-value">৳{totalRevenue.toLocaleString()}</span>
-            <span className="sub-stat-label">Revenue</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="admin-filters">
-        <div className="filter-group">
-          <FiSearch className="filter-icon" />
-          <input
-            type="text"
-            className="filter-input"
-            placeholder="Search sellers by name, email, or phone..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+        }
+      >
+        {filteredSellers.map((seller, idx) => (
+          <AdminListTileSeller
+            key={seller.docId}
+            seller={seller}
+            rank={idx + 1}
+            onClick={() => {
+              setSelectedSeller(seller);
+              setSelectedRank(idx + 1);
+            }}
           />
-        </div>
-      </div>
+        ))}
+      </AdminListView>
 
-      <div className="admin-table-container">
-        {filteredSellers.length === 0 ? (
-          <div className="admin-empty-state">
-            <FiAward className="empty-icon" />
-            <p>No sellers found</p>
-          </div>
-        ) : (
-          <div className="seller-cards-grid">
-            {filteredSellers.map((seller, idx) => (
-              <div
-                key={seller.docId}
-                className={`seller-card ${expandedSeller === seller.uid ? 'expanded' : ''}`}
-                onClick={() => setExpandedSeller(expandedSeller === seller.uid ? null : seller.uid)}
-              >
-                <div className="seller-card-header">
-                  <div className="seller-avatar">
-                    {seller.photoURL ? (
-                      <img src={seller.photoURL} alt={seller.fullName} />
-                    ) : (
-                      <FiUser />
-                    )}
-                  </div>
-                  <div className="seller-info">
-                    <h3 className="seller-name">{seller.fullName || 'No Name'}</h3>
-                    <p className="seller-email">
-                      <FiMail /> {seller.email || 'No email'}
-                    </p>
-                  </div>
-                  <span className="seller-rank">#{idx + 1}</span>
-                </div>
-
-                <div className="seller-stats">
-                  <div className="seller-stat-item">
-                    <FiPackage className="seller-stat-icon" />
-                    <span className="seller-stat-value">{seller.productCount}</span>
-                    <span className="seller-stat-label">Products</span>
-                  </div>
-                  <div className="seller-stat-item">
-                    <FiShoppingBag className="seller-stat-icon" />
-                    <span className="seller-stat-value">{seller.orderCount}</span>
-                    <span className="seller-stat-label">Orders</span>
-                  </div>
-                  <div className="seller-stat-item">
-                    <FiTrendingUp className="seller-stat-icon" />
-                    <span className="seller-stat-value">৳{seller.confirmedRevenue.toLocaleString()}</span>
-                    <span className="seller-stat-label">Revenue</span>
-                  </div>
-                </div>
-
-                {expandedSeller === seller.uid && (
-                  <div className="seller-expanded">
-                    <div className="seller-detail-row">
-                      <span className="detail-label">Phone:</span>
-                      <span className="detail-value">{seller.phone || 'N/A'}</span>
-                    </div>
-                    <div className="seller-detail-row">
-                      <span className="detail-label">UID:</span>
-                      <span className="detail-value">{seller.uid.substring(0, 20)}...</span>
-                    </div>
-                    <div className="seller-detail-row">
-                      <span className="detail-label">Total Sales:</span>
-                      <span className="detail-value">৳{seller.totalRevenue.toLocaleString()}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+      <SellerDetailModal
+        isOpen={!!selectedSeller}
+        onClose={() => {
+          setSelectedSeller(null);
+          setSelectedRank(null);
+        }}
+        seller={selectedSeller}
+        rank={selectedRank}
+      />
+    </div>
   );
 }

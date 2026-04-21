@@ -127,15 +127,12 @@ export default function CategoryPage({ onBackHome, onOpenCart, onOpenProduct }) 
             />
           </div>
 
-          <div className="category-browser-hero">
+          <div className="category-browser-hero flutter-hero">
             <div>
               <p className="category-browser-kicker">Smart Category View</p>
               <h2>{selectedCategoryItem?.name || 'Category'}</h2>
-              <p>
-                Browse products in a cleaner two-panel layout. Tap any product to open the details page.
-              </p>
             </div>
-            <div className="category-browser-badge">
+            <div className="category-browser-badge flutter-badge">
               <FiGrid />
               <span>{filteredProducts.length} items</span>
             </div>
@@ -161,17 +158,17 @@ export default function CategoryPage({ onBackHome, onOpenCart, onOpenProduct }) 
                 </button>
               </div>
 
-              <div className="category-browser-grid">
+              <div className="category-browser-grid flutter-grid">
                 {filteredProducts.map((product) => {
                   const firstImage = splitProductImages(product)[0];
                   return (
                     <button
                       key={product.id}
                       type="button"
-                      className="category-product-card"
+                      className="category-product-card flutter-card"
                       onClick={() => onOpenProduct?.(product)}
                     >
-                      <div className="category-product-image">
+                      <div className="category-product-image flutter-card-img">
                         {firstImage ? (
                           <ShimmerImage
                             src={firstImage}
@@ -183,7 +180,7 @@ export default function CategoryPage({ onBackHome, onOpenCart, onOpenProduct }) 
                           <div className="category-product-fallback">{product.name.slice(0, 1).toUpperCase()}</div>
                         )}
                       </div>
-                      <span className="category-product-name">{product.name}</span>
+                      <span className="category-product-name flutter-card-title">{product.name}</span>
                     </button>
                   );
                 })}

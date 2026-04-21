@@ -1,0 +1,228 @@
+.om-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding-bottom: 5rem;
+}
+
+/* App Bar */
+.om-appbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #e0f2fe;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.om-back {
+  width: 36px; height: 36px;
+  border: none; border-radius: 10px;
+  background: #fff; color: #374151;
+  cursor: pointer; font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s; flex-shrink: 0;
+}
+.om-back:hover { background: #e2e8f0; }
+.om-appbar-center { display: flex; align-items: center; gap: 0.5rem; }
+.om-appbar-logo { height: 28px; width: auto; object-fit: contain; }
+.om-appbar-title { font-size: 1rem; font-weight: 700; color: #1e293b; }
+
+/* Search */
+.om-search-wrap {
+  position: relative;
+  margin: 0.75rem 1rem 0;
+}
+.om-search-icon {
+  position: absolute; left: 0.85rem; top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8; font-size: 0.95rem; pointer-events: none;
+}
+.om-search {
+  width: 100%;
+  padding: 0.7rem 2.5rem 0.7rem 2.4rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.om-search:focus { border-color: #3b82f6; }
+.om-search-clear {
+  position: absolute; right: 0.75rem; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: #94a3b8; cursor: pointer; font-size: 1.2rem;
+}
+
+/* Tabs */
+.om-tabs {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.om-tabs::-webkit-scrollbar { display: none; }
+.om-tab {
+  display: flex; align-items: center; gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 50px;
+  background: #fff;
+  font-size: 0.8rem; font-weight: 600;
+  color: #64748b; cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.om-tab:hover { border-color: #cbd5e1; color: #1e293b; }
+.om-tab-active {
+  background: #1e40af; border-color: #1e40af;
+  color: #fff;
+}
+.om-tab-count {
+  background: rgba(0,0,0,0.12);
+  padding: 0.05rem 0.4rem;
+  border-radius: 50px;
+  font-size: 0.72rem; font-weight: 700;
+}
+.om-tab-active .om-tab-count { background: rgba(255,255,255,0.25); }
+
+/* Body */
+.om-body {
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* Center state */
+.om-center {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0.75rem; padding: 4rem 2rem;
+  text-align: center; color: #94a3b8;
+}
+.om-empty-icon { font-size: 3rem; color: #d1d5db; }
+.om-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: om-spin 0.8s linear infinite;
+}
+@keyframes om-spin { to { transform: rotate(360deg); } }
+
+/* Card */
+.om-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #f1f5f9;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.om-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.om-card-open { border-color: #bfdbfe; box-shadow: 0 4px 16px rgba(59,130,246,0.1); }
+
+/* Card Head */
+.om-card-head {
+  width: 100%; background: none; border: none;
+  padding: 0.85rem 1rem;
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 0.5rem;
+  cursor: pointer; text-align: left;
+}
+.om-card-head-left { display: flex; align-items: center; gap: 0.65rem; }
+.om-card-pkg { color: #3b82f6; font-size: 1.1rem; flex-shrink: 0; }
+.om-card-id { font-size: 0.88rem; font-weight: 700; color: #1e293b; margin: 0; }
+.om-card-date { font-size: 0.72rem; color: #94a3b8; margin: 0.1rem 0 0; }
+.om-card-head-right { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.om-card-total { font-size: 0.95rem; font-weight: 800; color: #1e293b; }
+.om-chevron { color: #94a3b8; font-size: 1rem; }
+
+/* Status badge */
+.om-status {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 50px;
+  font-size: 0.72rem; font-weight: 700;
+}
+.om-status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%; flex-shrink: 0;
+}
+
+/* Meta row */
+.om-card-meta {
+  display: flex; gap: 1rem;
+  padding: 0 1rem 0.75rem;
+  font-size: 0.75rem; color: #94a3b8;
+}
+.om-card-meta span { display: flex; align-items: center; gap: 0.3rem; }
+
+/* Card Body */
+.om-card-body {
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid #f1f5f9;
+  background: #fafbff;
+}
+
+.om-section-label {
+  font-size: 0.7rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: #3b82f6; margin: 0 0 0.5rem;
+}
+
+/* Items */
+.om-item-row {
+  display: flex; justify-content: space-between;
+  align-items: center; gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.om-item-row:last-child { border-bottom: none; }
+.om-item-name {
+  font-size: 0.85rem; color: #1e293b; font-weight: 500;
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.om-item-right { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.om-item-qty { font-size: 0.75rem; color: #94a3b8; }
+.om-item-price { font-size: 0.85rem; font-weight: 700; color: #2563eb; }
+
+/* Divider */
+.om-divider { height: 1px; background: #e2e8f0; margin: 0.75rem 0; }
+
+/* Info row */
+.om-info-row {
+  display: flex; align-items: flex-start; gap: 0.4rem;
+  font-size: 0.82rem; color: #475569;
+  margin-bottom: 0.35rem;
+}
+.om-info-row svg { flex-shrink: 0; margin-top: 2px; color: #94a3b8; }
+
+/* Summary */
+.om-summary-row {
+  display: flex; justify-content: space-between;
+  font-size: 0.85rem; color: #64748b;
+  padding: 0.25rem 0;
+}
+.om-summary-total {
+  font-size: 0.95rem; font-weight: 800;
+  color: #1e293b; padding-top: 0.4rem;
+  border-top: 1.5px solid #e2e8f0; margin-top: 0.25rem;
+}
+
+/* Status message */
+.om-status-msg {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+  border-radius: 8px;
+  font-size: 0.8rem; color: #1e40af; line-height: 1.5;
+}

@@ -16,6 +16,26 @@ try {
   console.log('Analytics setup failed:', error);
 }
 
+// Global ripple wave effect on all buttons
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+
+  const circle = document.createElement('span');
+  const diameter = Math.max(btn.clientWidth, btn.clientHeight);
+  const rect = btn.getBoundingClientRect();
+
+  circle.classList.add('ripple');
+  circle.style.width = circle.style.height = `${diameter}px`;
+  circle.style.left = `${e.clientX - rect.left - diameter / 2}px`;
+  circle.style.top  = `${e.clientY - rect.top  - diameter / 2}px`;
+
+  btn.querySelector('.ripple')?.remove();
+  btn.appendChild(circle);
+
+  circle.addEventListener('animationend', () => circle.remove());
+});
+
 // Error Boundary to catch and display errors
 class ErrorBoundary extends Component {
   constructor(props) {

@@ -1,406 +1,203 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../firebase';
-import {
-  FiShoppingBag,
-  FiSearch,
-  FiClock,
-  FiTruck,
-  FiCheckCircle,
-  FiXCircle,
-  FiPackage,
-  FiArrowLeft,
-  FiMapPin,
-  FiPhone,
-  FiCreditCard,
-  FiCalendar,
-  FiUser,
-  FiDollarSign,
-  FiFilter,
-  FiChevronDown,
-  FiChevronUp,
-} from 'react-icons/fi';
+import { FiArrowLeft, FiShoppingBag, FiClock, FiTruck, FiCheckCircle, FiXCircle, FiPackage, FiChevronDown, FiChevronUp, FiSearch, FiMapPin, FiPhone, FiCreditCard } from 'react-icons/fi';
+import logo from '../bstoreapp/assets/images/logo.png';
+import './OrderManagement.css';
 
-function toMillis(value) {
-  if (!value) return 0;
-  if (typeof value?.toDate === 'function') return value.toDate().getTime();
-  if (typeof value === 'string') {
-    const ms = new Date(value).getTime();
-    return Number.isFinite(ms) ? ms : 0;
-  }
+function toMillis(v) {
+  if (!v) return 0;
+  if (typeof v?.toDate === 'function') return v.toDate().getTime();
+  if (typeof v === 'string') { const ms = new Date(v).getTime(); return isFinite(ms) ? ms : 0; }
   return 0;
 }
 
-function formatDate(value) {
-  const ms = toMillis(value);
-  if (!ms) return 'No date';
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(ms));
+function formatDate(v) {
+  const ms = toMillis(v);
+  if (!ms) return '—';
+  return new Intl.DateTimeFormat('en-BD', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
 }
 
-function getStatusIcon(status) {
-  switch (status) {
-    case 'pending': return <FiClock />;
-    case 'processing': return <FiTruck />;
-    case 'confirmed': return <FiCheckCircle />;
-    case 'delivered': return <FiCheckCircle />;
-    case 'cancelled': return <FiXCircle />;
-    default: return <FiClock />;
-  }
-}
+const STATUS = {
+  pending:    { label: 'Pending',    bg: '#fef3c7', text: '#92400e', dot: '#f59e0b' },
+  processing: { label: 'Processing', bg: '#dbeafe', text: '#1e40af', dot: '#3b82f6' },
+  confirmed:  { label: 'Confirmed',  bg: '#d1fae5', text: '#065f46', dot: '#10b981' },
+  delivered:  { label: 'Delivered',  bg: '#d1fae5', text: '#065f46', dot: '#10b981' },
+  cancelled:  { label: 'Cancelled',  bg: '#fee2e2', text: '#991b1b', dot: '#ef4444' },
+};
 
-function getStatusColor(status) {
-  switch (status) {
-    case 'pending': return { bg: '#fef3c7', text: '#92400e', border: '#fbbf24' };
-    case 'processing': return { bg: '#dbeafe', text: '#1e40af', border: '#3b82f6' };
-    case 'confirmed': return { bg: '#d1fae5', text: '#065f46', border: '#10b981' };
-    case 'delivered': return { bg: '#d1fae5', text: '#065f46', border: '#10b981' };
-    case 'cancelled': return { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' };
-    default: return { bg: '#f3f4f6', text: '#374151', border: '#9ca3af' };
-  }
-}
-
-function getStatusLabel(status) {
-  switch (status) {
-    case 'pending': return 'Pending';
-    case 'processing': return 'Processing';
-    case 'confirmed': return 'Confirmed';
-    case 'delivered': return 'Delivered';
-    case 'cancelled': return 'Cancelled';
-    default: return 'Unknown';
-  }
-}
+const TABS = [
+  { key: 'all',        label: 'All',        icon: <FiShoppingBag /> },
+  { key: 'pending',    label: 'Pending',    icon: <FiClock /> },
+  { key: 'processing', label: 'Processing', icon: <FiTruck /> },
+  { key: 'confirmed',  label: 'Confirmed',  icon: <FiCheckCircle /> },
+  { key: 'delivered',  label: 'Delivered',  icon: <FiCheckCircle /> },
+  { key: 'cancelled',  label: 'Cancelled',  icon: <FiXCircle /> },
+];
 
 export default function OrderManagementPage({ onBack, currentUser, isAdmin = false }) {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [orders, setOrders]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [tab, setTab]             = useState('all');
+  const [expanded, setExpanded]   = useState(null);
 
   useEffect(() => {
-    const orderQuery = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(orderQuery, snapshot => {
-      setOrders(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, snap => {
+      setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     });
-
-    return unsubscribe;
   }, []);
 
-  const visibleOrders = useMemo(() => {
-    if (isAdmin) return orders;
-    return orders.filter(order => order.userUid === currentUser?.uid);
-  }, [orders, isAdmin, currentUser?.uid]);
+  const mine = useMemo(() =>
+    isAdmin ? orders : orders.filter(o => o.userUid === currentUser?.uid),
+    [orders, isAdmin, currentUser?.uid]
+  );
 
-  const filteredOrders = useMemo(() => {
-    const queryText = searchQuery.trim().toLowerCase();
-    const base = statusFilter === 'all' ? visibleOrders : visibleOrders.filter(o => o.status === statusFilter);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const base = tab === 'all' ? mine : mine.filter(o => o.status === tab);
+    if (!q) return base;
+    return base.filter(o =>
+      String(o.userName ?? '').toLowerCase().includes(q) ||
+      String(o.userPhone ?? '').toLowerCase().includes(q) ||
+      (o.items ?? []).some(i => String(i.name ?? '').toLowerCase().includes(q))
+    );
+  }, [mine, tab, search]);
 
-    if (!queryText) return base;
-
-    return base.filter(order => {
-      const phone = String(order.userPhone ?? '').toLowerCase();
-      const userName = String(order.userName ?? '').toLowerCase();
-      const itemMatch = Array.isArray(order.items)
-        ? order.items.some(item => String(item.name ?? '').toLowerCase().includes(queryText))
-        : false;
-      return phone.includes(queryText) || userName.includes(queryText) || itemMatch;
-    });
-  }, [visibleOrders, searchQuery, statusFilter]);
-
-  const orderStats = useMemo(() => ({
-    total: visibleOrders.length,
-    pending: visibleOrders.filter(o => o.status === 'pending').length,
-    processing: visibleOrders.filter(o => o.status === 'processing').length,
-    confirmed: visibleOrders.filter(o => o.status === 'confirmed').length,
-    delivered: visibleOrders.filter(o => o.status === 'delivered').length,
-    cancelled: visibleOrders.filter(o => o.status === 'cancelled').length,
-    totalRevenue: visibleOrders.filter(o => o.status === 'delivered' || o.status === 'confirmed')
-      .reduce((sum, o) => sum + Number(o.totalPrice ?? 0), 0),
-  }), [visibleOrders]);
-
-  const statusTabs = [
-    { key: 'all', label: 'All Orders', count: orderStats.total, icon: <FiShoppingBag /> },
-    { key: 'pending', label: 'Pending', count: orderStats.pending, icon: <FiClock /> },
-    { key: 'processing', label: 'Processing', count: orderStats.processing, icon: <FiTruck /> },
-    { key: 'confirmed', label: 'Confirmed', count: orderStats.confirmed, icon: <FiCheckCircle /> },
-    { key: 'delivered', label: 'Delivered', count: orderStats.delivered, icon: <FiCheckCircle /> },
-    { key: 'cancelled', label: 'Cancelled', count: orderStats.cancelled, icon: <FiXCircle /> },
-  ];
-
-  function toggleOrderExpand(orderId) {
-    setExpandedOrderId(prev => prev === orderId ? null : orderId);
-  }
+  const counts = useMemo(() => ({
+    all: mine.length,
+    pending: mine.filter(o => o.status === 'pending').length,
+    processing: mine.filter(o => o.status === 'processing').length,
+    confirmed: mine.filter(o => o.status === 'confirmed').length,
+    delivered: mine.filter(o => o.status === 'delivered').length,
+    cancelled: mine.filter(o => o.status === 'cancelled').length,
+  }), [mine]);
 
   return (
-    <div className="pro-order-page">
-      {/* Hero Header */}
-      <div className="pro-order-header">
-        <div className="pro-order-header-bg"></div>
-        <div className="pro-order-header-content">
-          <div className="pro-order-header-left">
-            <button className="pro-order-back-btn" onClick={onBack || (() => window.history.back())}>
-              <FiArrowLeft /> Back
-            </button>
-            <div className="pro-order-title-section">
-              <FiShoppingBag className="pro-order-title-icon" />
-              <div>
-                <h1 className="pro-order-title">{isAdmin ? 'All Orders' : 'My Orders'}</h1>
-                <p className="pro-order-subtitle">
-                  {isAdmin ? 'Manage and track all customer orders' : 'Track your order status in real-time'}
-                </p>
-              </div>
-            </div>
-          </div>
+    <div className="om-page">
+      {/* App Bar */}
+      <div className="om-appbar">
+        <button className="om-back" onClick={onBack || (() => window.history.back())}>
+          <FiArrowLeft />
+        </button>
+        <div className="om-appbar-center">
+          <img src={logo} alt="Logo" className="om-appbar-logo" />
+          <span className="om-appbar-title">{isAdmin ? 'All Orders' : 'My Orders'}</span>
         </div>
+        <div style={{ width: 36 }} />
       </div>
 
-      {/* Main Content */}
-      <div className="pro-order-content">
-        {/* Stats Buttons */}
-        <div className="pro-order-stats-buttons">
-          <button className="pro-order-stat-btn" onClick={() => setStatusFilter('all')}>
-            <div className="pro-order-stat-btn-icon" style={{ background: '#eff6ff', color: '#1e40af' }}>
-              <FiShoppingBag />
-            </div>
-            <div className="pro-order-stat-btn-info">
-              <span className="pro-order-stat-btn-value">{orderStats.total}</span>
-              <span className="pro-order-stat-btn-label">Total Orders</span>
-            </div>
-          </button>
-          <button className="pro-order-stat-btn" onClick={() => setStatusFilter('pending')}>
-            <div className="pro-order-stat-btn-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-              <FiClock />
-            </div>
-            <div className="pro-order-stat-btn-info">
-              <span className="pro-order-stat-btn-value">{orderStats.pending}</span>
-              <span className="pro-order-stat-btn-label">Pending</span>
-            </div>
-          </button>
-          <button className="pro-order-stat-btn" onClick={() => setStatusFilter('processing')}>
-            <div className="pro-order-stat-btn-icon" style={{ background: '#dbeafe', color: '#2563eb' }}>
-              <FiTruck />
-            </div>
-            <div className="pro-order-stat-btn-info">
-              <span className="pro-order-stat-btn-value">{orderStats.processing}</span>
-              <span className="pro-order-stat-btn-label">Processing</span>
-            </div>
-          </button>
-          <button className="pro-order-stat-btn" onClick={() => setStatusFilter('confirmed')}>
-            <div className="pro-order-stat-btn-icon" style={{ background: '#d1fae5', color: '#059669' }}>
-              <FiDollarSign />
-            </div>
-            <div className="pro-order-stat-btn-info">
-              <span className="pro-order-stat-btn-value">৳{orderStats.totalRevenue.toLocaleString()}</span>
-              <span className="pro-order-stat-btn-label">Revenue</span>
-            </div>
-          </button>
-        </div>
+      {/* Search */}
+      <div className="om-search-wrap">
+        <FiSearch className="om-search-icon" />
+        <input
+          className="om-search"
+          type="text"
+          placeholder="Search by name, phone or product..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        {search && <button className="om-search-clear" onClick={() => setSearch('')}>×</button>}
+      </div>
 
-        {/* Status Filter Tabs */}
-        <div className="pro-order-tabs">
-          {statusTabs.map(tab => (
-            <button
-              key={tab.key}
-              className={`pro-order-tab ${statusFilter === tab.key ? 'pro-order-tab-active' : ''}`}
-              onClick={() => setStatusFilter(tab.key)}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-              <span className="pro-order-tab-count">{tab.count}</span>
-            </button>
-          ))}
-        </div>
+      {/* Tabs */}
+      <div className="om-tabs">
+        {TABS.map(t => (
+          <button
+            key={t.key}
+            className={`om-tab ${tab === t.key ? 'om-tab-active' : ''}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.icon}
+            <span>{t.label}</span>
+            {counts[t.key] > 0 && <span className="om-tab-count">{counts[t.key]}</span>}
+          </button>
+        ))}
+      </div>
 
-        {/* Search Bar */}
-        <div className="pro-order-search">
-          <FiSearch className="pro-order-search-icon" />
-          <input
-            type="text"
-            className="pro-order-search-input"
-            placeholder="Search by phone, name, or product..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button className="pro-order-search-clear" onClick={() => setSearchQuery('')}>
-              ×
-            </button>
-          )}
-        </div>
-
-        {/* Orders List */}
+      {/* List */}
+      <div className="om-body">
         {loading ? (
-          <div className="pro-order-loading">
-            <div className="pro-order-spinner" />
+          <div className="om-center">
+            <div className="om-spinner" />
             <p>Loading orders...</p>
           </div>
-        ) : filteredOrders.length === 0 ? (
-          <div className="pro-order-empty">
-            <FiShoppingBag className="pro-order-empty-icon" />
-            <h3>No orders found</h3>
-            <p>{searchQuery ? 'Try adjusting your search criteria.' : isAdmin ? 'No orders in the system yet.' : 'You have no orders yet.'}</p>
+        ) : filtered.length === 0 ? (
+          <div className="om-center">
+            <FiShoppingBag className="om-empty-icon" />
+            <p>{search ? 'No results found.' : 'No orders yet.'}</p>
           </div>
         ) : (
-          <div className="pro-orders-list">
-            {filteredOrders.map(order => {
-              const statusColor = getStatusColor(order.status || 'pending');
-              const isExpanded = expandedOrderId === order.id;
-
-              return (
-                <div
-                  key={order.id}
-                  className={`pro-order-card ${isExpanded ? 'pro-order-card-expanded' : ''}`}
-                >
-                  {/* Order Header */}
-                  <div className="pro-order-card-header" onClick={() => toggleOrderExpand(order.id)}>
-                    <div className="pro-order-header-main">
-                      <div className="pro-order-id-section">
-                        <FiPackage className="pro-order-id-icon" />
-                        <span className="pro-order-id">#{order.id.slice(0, 8).toUpperCase()}</span>
-                      </div>
-                      <span
-                        className="pro-order-status-badge"
-                        style={{
-                          background: statusColor.bg,
-                          color: statusColor.text,
-                          borderColor: statusColor.border,
-                        }}
-                      >
-                        {getStatusIcon(order.status)} {getStatusLabel(order.status)}
-                      </span>
-                    </div>
-                    <div className="pro-order-header-right">
-                      <span className="pro-order-total">৳{Number(order.totalPrice ?? 0).toFixed(2)}</span>
-                      <button className="pro-order-expand-btn">
-                        {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
-                      </button>
+          filtered.map(order => {
+            const s = STATUS[order.status] || STATUS.pending;
+            const isOpen = expanded === order.id;
+            return (
+              <div key={order.id} className={`om-card ${isOpen ? 'om-card-open' : ''}`}>
+                {/* Card Header */}
+                <button className="om-card-head" onClick={() => setExpanded(isOpen ? null : order.id)}>
+                  <div className="om-card-head-left">
+                    <FiPackage className="om-card-pkg" />
+                    <div>
+                      <p className="om-card-id">#{order.id.slice(-8).toUpperCase()}</p>
+                      <p className="om-card-date">{formatDate(order.createdAt)}</p>
                     </div>
                   </div>
-
-                  {/* Order Summary */}
-                  <div className="pro-order-card-summary">
-                    <div className="pro-order-summary-item">
-                      <FiUser className="pro-order-summary-icon" />
-                      <div>
-                        <span className="pro-order-summary-label">Customer</span>
-                        <span className="pro-order-summary-value">{order.userName || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="pro-order-summary-item">
-                      <FiPhone className="pro-order-summary-icon" />
-                      <div>
-                        <span className="pro-order-summary-label">Phone</span>
-                        <span className="pro-order-summary-value">{order.userPhone || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="pro-order-summary-item">
-                      <FiCalendar className="pro-order-summary-icon" />
-                      <div>
-                        <span className="pro-order-summary-label">Date</span>
-                        <span className="pro-order-summary-value">{formatDate(order.createdAt)}</span>
-                      </div>
-                    </div>
-                    <div className="pro-order-summary-item">
-                      <FiCreditCard className="pro-order-summary-icon" />
-                      <div>
-                        <span className="pro-order-summary-label">Payment</span>
-                        <span className="pro-order-summary-value">{order.paymentMethod || 'N/A'}</span>
-                      </div>
-                    </div>
+                  <div className="om-card-head-right">
+                    <span className="om-status" style={{ background: s.bg, color: s.text }}>
+                      <span className="om-status-dot" style={{ background: s.dot }} />
+                      {s.label}
+                    </span>
+                    <span className="om-card-total">৳{Number(order.totalPrice ?? 0).toFixed(0)}</span>
+                    {isOpen ? <FiChevronUp className="om-chevron" /> : <FiChevronDown className="om-chevron" />}
                   </div>
+                </button>
 
-                  {/* Expanded Details */}
-                  {isExpanded && (
-                    <div className="pro-order-details">
-                      {/* Order Items */}
-                      <div className="pro-order-items-section">
-                        <h4 className="pro-order-section-title">
-                          <FiPackage /> Order Items ({(order.items ?? []).length})
-                        </h4>
-                        <div className="pro-order-items-list">
-                          {(order.items ?? []).map((item, idx) => (
-                            <div key={idx} className="pro-order-item-row">
-                              <div className="pro-order-item-info">
-                                <span className="pro-order-item-name">{item.name}</span>
-                                {item.variant && <span className="pro-order-item-variant">{item.variant}</span>}
-                              </div>
-                              <div className="pro-order-item-meta">
-                                <span className="pro-order-item-qty">× {item.quantity || 1}</span>
-                                <span className="pro-order-item-price">৳{Number(item.price ?? 0).toFixed(2)}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Shipping Info */}
-                      {order.shipping && (
-                        <div className="pro-order-shipping-section">
-                          <h4 className="pro-order-section-title">
-                            <FiMapPin /> Shipping Information
-                          </h4>
-                          <div className="pro-order-shipping-info">
-                            {order.shipping.address && (
-                              <div className="pro-order-shipping-row">
-                                <span className="pro-order-shipping-label">Address:</span>
-                                <span className="pro-order-shipping-value">{order.shipping.address}</span>
-                              </div>
-                            )}
-                            {order.shipping.city && (
-                              <div className="pro-order-shipping-row">
-                                <span className="pro-order-shipping-label">City:</span>
-                                <span className="pro-order-shipping-value">{order.shipping.city}</span>
-                              </div>
-                            )}
-                            {order.shipping.phone && (
-                              <div className="pro-order-shipping-row">
-                                <span className="pro-order-shipping-label">Contact:</span>
-                                <span className="pro-order-shipping-value">{order.shipping.phone}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Status Message */}
-                      {order.statusMessage && (
-                        <div className="pro-order-status-message">
-                          <span className="pro-order-status-label">Status Update:</span>
-                          <p>{order.statusMessage}</p>
-                          {order.statusUpdatedAt && (
-                            <small className="pro-order-status-time">
-                              Updated: {formatDate(order.statusUpdatedAt)}
-                              {order.statusUpdatedBy?.displayName ? ` by ${order.statusUpdatedBy.displayName}` : ''}
-                            </small>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Order Total Summary */}
-                      <div className="pro-order-total-summary">
-                        <div className="pro-order-total-row">
-                          <span>Total Amount</span>
-                          <strong>৳{Number(order.totalPrice ?? 0).toFixed(2)}</strong>
-                        </div>
-                        <div className="pro-order-total-row">
-                          <span>Payment Method</span>
-                          <span>{order.paymentMethod || 'N/A'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                {/* Quick info row */}
+                <div className="om-card-meta">
+                  <span><FiPhone size={12} /> {order.userPhone || '—'}</span>
+                  <span><FiCreditCard size={12} /> {order.paymentMethod || '—'}</span>
+                  <span><FiPackage size={12} /> {(order.items ?? []).length} item{(order.items ?? []).length !== 1 ? 's' : ''}</span>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Expanded */}
+                {isOpen && (
+                  <div className="om-card-body">
+                    {/* Items */}
+                    <p className="om-section-label">Items</p>
+                    {(order.items ?? []).map((item, i) => (
+                      <div key={i} className="om-item-row">
+                        <span className="om-item-name">{item.name}</span>
+                        <span className="om-item-right">
+                          <span className="om-item-qty">×{item.quantity || 1}</span>
+                          <span className="om-item-price">৳{Number(item.price ?? 0).toFixed(0)}</span>
+                        </span>
+                      </div>
+                    ))}
+
+                    <div className="om-divider" />
+
+                    {/* Delivery */}
+                    <p className="om-section-label">Delivery</p>
+                    <div className="om-info-row"><FiMapPin size={13} /><span>{order.street || '—'}, {order.area || '—'}</span></div>
+                    <div className="om-info-row"><FiPhone size={13} /><span>{order.userPhone || '—'}</span></div>
+
+                    <div className="om-divider" />
+
+                    {/* Total */}
+                    <div className="om-summary-row"><span>Shipping</span><span>৳{Number(order.shippingCharge ?? 0).toFixed(0)}</span></div>
+                    <div className="om-summary-row om-summary-total"><span>Total</span><span>৳{Number(order.totalPrice ?? 0).toFixed(0)}</span></div>
+
+                    {/* Status message */}
+                    {order.statusMessage && (
+                      <div className="om-status-msg">{order.statusMessage}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

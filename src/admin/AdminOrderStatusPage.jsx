@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
   FiShoppingBag,
   FiDownload,
-  FiSearch,
   FiRefreshCw,
   FiClock,
   FiCheckCircle,
@@ -13,6 +11,7 @@ import {
   FiTruck,
   FiDollarSign,
   FiFilter,
+  FiPackage,
   FiCalendar,
   FiUser,
   FiPhone,
@@ -20,6 +19,8 @@ import {
   FiTrash2,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
+import { AdminListTileOrder, OrderDetailModal } from './components';
+import { AdminListView } from './components';
 
 const CACHE_KEY = 'admin-orders-page-data';
 
@@ -38,22 +39,6 @@ function writeCache(data) {
   } catch {}
 }
 
-function formatDate(value) {
-  if (!value) return 'N/A';
-  let ms = 0;
-  if (typeof value?.toMillis === 'function') ms = value.toMillis();
-  else if (typeof value === 'string') ms = new Date(value).getTime();
-  if (!ms || !Number.isFinite(ms)) return 'N/A';
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(ms));
-}
-
 function getStatusIcon(status) {
   switch (status) {
     case 'pending': return <FiClock />;
@@ -66,12 +51,12 @@ function getStatusIcon(status) {
 }
 
 export default function AdminOrderStatusPage({ currentUser }) {
-  const navigate = useNavigate();
   const [orders, setOrders] = useState(readCache);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [busyId, setBusyId] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   async function loadData() {
     setLoading(true);
@@ -90,6 +75,7 @@ export default function AdminOrderStatusPage({ currentUser }) {
         createdAt: d.data()?.createdAt || null,
         items: Array.isArray(d.data()?.items) ? d.data().items : [],
         shipping: d.data()?.shipping || {},
+        shippingCharge: d.data()?.shippingCharge || 0,
       }));
 
       items.sort((a, b) => {
@@ -134,6 +120,10 @@ export default function AdminOrderStatusPage({ currentUser }) {
     delivered: orders.filter(o => o.status === 'delivered').length,
     cancelled: orders.filter(o => o.status === 'cancelled').length,
   };
+
+  const totalRevenue = orders
+    .filter(o => o.status === 'confirmed' || o.status === 'delivered')
+    .reduce((sum, o) => sum + o.totalPrice, 0);
 
   async function updateOrderStatus(order, newStatus) {
     const statusMessages = {
@@ -190,188 +180,65 @@ export default function AdminOrderStatusPage({ currentUser }) {
     docPDF.save(`Order-Status-${new Date().toISOString().split('T')[0]}.pdf`);
   }
 
-  const totalRevenue = orders
-    .filter(o => o.status === 'confirmed' || o.status === 'delivered')
-    .reduce((sum, o) => sum + o.totalPrice, 0);
+  const stats = [
+    { icon: <FiShoppingBag className="w-6 h-6" />, value: orderStats.total, label: 'Total Orders', bgColor: 'bg-indigo-100', color: 'text-indigo-600' },
+    { icon: <FiClock className="w-6 h-6" />, value: orderStats.pending, label: 'Pending', bgColor: 'bg-amber-100', color: 'text-amber-600' },
+    { icon: <FiTruck className="w-6 h-6" />, value: orderStats.processing, label: 'Processing', bgColor: 'bg-blue-100', color: 'text-blue-600' },
+    { icon: <FiDollarSign className="w-6 h-6" />, value: `৳${totalRevenue.toLocaleString()}`, label: 'Revenue', bgColor: 'bg-emerald-100', color: 'text-emerald-600' },
+  ];
+
+  const filterOptions = [
+    { value: 'all', label: 'All Orders' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'processing', label: 'Processing' },
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'delivered', label: 'Delivered' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ];
 
   return (
-    <div className="admin-orders-page animate-fade-in">
-      <div className="card-header-flex mb-4">
-        <div>
-          <h2 className="admin-page-title" style={{ background: 'none', webkitTextFillColor: 'initial', color: 'var(--admin-text-main)' }}>
-            Order Management
-          </h2>
-          <p className="admin-text-muted">Track and update customer orders.</p>
-        </div>
-        <div className="admin-header-actions">
-          <button className="btn-modern btn-primary-modern" onClick={loadData} disabled={loading}>
-            <FiRefreshCw className={loading ? 'spin' : ''} />
-            {loading ? 'Refreshing...' : 'Refresh Orders'}
-          </button>
-          <button className="btn-modern" style={{ background: 'white', border: '1px solid #e2e8f0' }} onClick={downloadPDF}>
-            <FiDownload /> Export
-          </button>
-        </div>
-      </div>
-
-      <div className="stats-row mb-4">
-        <div className="stat-box">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-            <FiShoppingBag />
-          </div>
-          <div className="stat-info-wrap">
-            <span className="stat-val">{orderStats.total}</span>
-            <span className="stat-lab">Total Orders</span>
-          </div>
-        </div>
-        <div className="stat-box">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-            <FiClock />
-          </div>
-          <div className="stat-info-wrap">
-            <span className="stat-val">{orderStats.pending}</span>
-            <span className="stat-lab">Pending</span>
-          </div>
-        </div>
-        <div className="stat-box">
-          <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-            <FiDollarSign />
-          </div>
-          <div className="stat-info-wrap">
-            <span className="stat-val">৳{totalRevenue.toLocaleString()}</span>
-            <span className="stat-lab">Revenue</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Modern Status Filters */}
-      <div className="admin-card-modern mb-4">
-        <div className="d-flex flex-wrap gap-2 mb-4">
-          <button
-            className={`btn-modern ${statusFilter === 'all' ? 'btn-primary-modern' : ''}`}
-            style={statusFilter !== 'all' ? { background: '#f1f5f9', color: '#64748b' } : {}}
-            onClick={() => setStatusFilter('all')}
+    <div className="admin-orders-page animate-fade-in pb-20">
+      <AdminListView
+        title="Order Management"
+        subtitle="Track and manage customer orders"
+        loading={loading}
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search by ID, customer name, or phone..."
+        filterOptions={filterOptions}
+        selectedFilter={statusFilter}
+        onFilterChange={setStatusFilter}
+        onRefresh={loadData}
+        refreshLabel="Refresh"
+        stats={stats}
+        emptyIcon={FiShoppingBag}
+        emptyMessage={searchQuery || statusFilter !== 'all' ? 'No orders match your filters' : 'No orders found'}
+        actions={
+          <button 
+            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+            onClick={downloadPDF}
           >
-            All Orders
+            <FiDownload className="w-4 h-4" />
+            Export
           </button>
-          {['pending', 'processing', 'confirmed', 'delivered', 'cancelled'].map(status => (
-            <button
-              key={status}
-              className={`btn-modern ${statusFilter === status ? 'btn-primary-modern' : ''}`}
-              style={statusFilter !== status ? { background: '#f1f5f9', color: '#64748b' } : {}}
-              onClick={() => setStatusFilter(status)}
-            >
-              {getStatusIcon(status)}
-              <span className="text-capitalize">{status}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="filter-group mb-0" style={{ minWidth: '100%' }}>
-          <FiSearch className="filter-icon" />
-          <input
-            type="text"
-            className="filter-input admin-input"
-            placeholder="Search by ID, customer name, or phone..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+        }
+      >
+        {filteredOrders.map(order => (
+          <AdminListTileOrder
+            key={order.docId}
+            order={order}
+            onClick={() => setSelectedOrder(order)}
           />
-        </div>
-      </div>
+        ))}
+      </AdminListView>
 
-      {/* Orders List */}
-      <div className="order-cards-list">
-        {filteredOrders.length === 0 ? (
-          <div className="admin-card-modern text-center py-5">
-            <FiShoppingBag size={48} className="text-muted mb-3" />
-            <p className="h5">No orders found</p>
-          </div>
-        ) : (
-          filteredOrders.map(order => (
-            <div key={order.docId} className="admin-card-modern">
-              <div className="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: 'var(--admin-primary)', width: '48px', height: '48px' }}>
-                    <FiShoppingBag />
-                  </div>
-                  <div>
-                    <h3 className="h6 mb-0">Order #{order.docId.substring(0, 8)}</h3>
-                    <span className="admin-text-muted" style={{ fontSize: '0.8rem' }}>
-                      <FiCalendar size={12} /> {formatDate(order.createdAt)}
-                    </span>
-                  </div>
-                </div>
-                <div className="d-flex align-items-center gap-3">
-                  <span className={`role-badge role-${order.status}`} style={{ padding: '0.5rem 1rem' }}>
-                    {order.status}
-                  </span>
-                  <span className="stat-val" style={{ fontSize: '1.25rem' }}>৳{order.totalPrice.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="row g-4 mb-4">
-                <div className="col-12 col-md-4">
-                  <div className="d-flex flex-column gap-2">
-                    <span className="stat-lab">Customer Information</span>
-                    <div className="d-flex align-items-center gap-2"><FiUser size={14} className="text-primary" /> <strong>{order.userName}</strong></div>
-                    <div className="d-flex align-items-center gap-2"><FiPhone size={14} className="text-primary" /> {order.userPhone}</div>
-                  </div>
-                </div>
-                <div className="col-12 col-md-4">
-                  <div className="d-flex flex-column gap-2">
-                    <span className="stat-lab">Payment & Shipping</span>
-                    <div className="d-flex align-items-center gap-2"><FiCreditCard size={14} className="text-primary" /> {order.paymentMethod}</div>
-                    <div className="admin-text-muted" style={{ fontSize: '0.85rem' }}>{order.statusMessage}</div>
-                  </div>
-                </div>
-                <div className="col-12 col-md-4">
-                  <div className="d-flex flex-column gap-2">
-                    <span className="stat-lab">Items Ordered ({order.items?.length})</span>
-                    <div className="d-flex flex-wrap gap-2">
-                      {order.items?.map((item, i) => (
-                        <span key={i} className="badge bg-light text-dark border" style={{ fontWeight: 500 }}>
-                          {item.name} x{item.quantity}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="d-flex gap-2 flex-wrap border-top pt-3">
-                {order.status === 'pending' && (
-                  <>
-                    <button className="btn-modern btn-primary-modern" onClick={() => updateOrderStatus(order, 'processing')} disabled={busyId === order.docId}>
-                      <FiTruck /> Process
-                    </button>
-                    <button className="btn-modern" style={{ background: '#ecfdf5', color: '#059669' }} onClick={() => updateOrderStatus(order, 'confirmed')} disabled={busyId === order.docId}>
-                      <FiCheckCircle /> Confirm
-                    </button>
-                  </>
-                )}
-                {order.status === 'processing' && (
-                  <button className="btn-modern" style={{ background: '#ecfdf5', color: '#059669' }} onClick={() => updateOrderStatus(order, 'confirmed')} disabled={busyId === order.docId}>
-                    <FiCheckCircle /> Confirm
-                  </button>
-                )}
-                {order.status === 'confirmed' && (
-                  <button className="btn-modern" style={{ background: '#f0f9ff', color: '#0ea5e9' }} onClick={() => updateOrderStatus(order, 'delivered')} disabled={busyId === order.docId}>
-                    <FiCheckCircle /> Deliver
-                  </button>
-                )}
-                {order.status !== 'delivered' && order.status !== 'cancelled' && (
-                  <button className="btn-modern" style={{ background: '#fef2f2', color: '#ef4444' }} onClick={() => updateOrderStatus(order, 'cancelled')} disabled={busyId === order.docId}>
-                    <FiXCircle /> Cancel
-                  </button>
-                )}
-                <button className="btn-modern ms-auto" style={{ background: '#fff1f2', color: '#e11d48' }} onClick={() => deleteOrder(order.docId)} disabled={busyId === order.docId}>
-                  <FiTrash2 /> Delete
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      <OrderDetailModal
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        order={selectedOrder}
+        onUpdateStatus={updateOrderStatus}
+        busyId={busyId}
+      />
     </div>
   );
 }

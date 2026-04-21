@@ -5,7 +5,6 @@ import { db } from '../firebase';
 import {
   FiShield,
   FiDownload,
-  FiSearch,
   FiRefreshCw,
   FiArrowLeft,
   FiMail,
@@ -13,6 +12,8 @@ import {
   FiStar,
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
+import { AdminListTileAdmin } from './components';
+import { AdminListView } from './components';
 
 const CACHE_KEY = 'admin-list-page-data';
 
@@ -87,7 +88,6 @@ export default function AdminListPage({ currentUser }) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header
     doc.setFillColor(240, 147, 251);
     doc.rect(0, 0, pageWidth, 40, 'F');
     doc.setTextColor(255, 255, 255);
@@ -102,7 +102,6 @@ export default function AdminListPage({ currentUser }) {
       { align: 'center' }
     );
 
-    // Table
     doc.setTextColor(0, 0, 0);
     let y = 50;
     doc.setFontSize(9);
@@ -135,102 +134,45 @@ export default function AdminListPage({ currentUser }) {
     doc.save(`Admin-List-${new Date().toISOString().split('T')[0]}.pdf`);
   }
 
+  const stats = [
+    { icon: <FiShield className="w-6 h-6" />, value: admins.length, label: 'Total Admins', bgColor: 'bg-purple-100', color: 'text-purple-600' },
+    { icon: <FiStar className="w-6 h-6" />, value: admins.filter(a => a.role === 'admin').length, label: 'Admins', bgColor: 'bg-rose-100', color: 'text-rose-600' },
+    { icon: <FiUser className="w-6 h-6" />, value: admins.filter(a => a.role === 'subadmin').length, label: 'Subadmins', bgColor: 'bg-blue-100', color: 'text-blue-600' },
+    { icon: <FiShield className="w-6 h-6" />, value: filteredAdmins.length, label: 'Filtered', bgColor: 'bg-indigo-100', color: 'text-indigo-600' },
+  ];
+
   return (
-    <section className="admin-sub-page">
-      <div className="admin-sub-header">
-        <button className="btn btn-back" onClick={() => navigate('/admin-dashboard')}>
-          <FiArrowLeft /> Back to Dashboard
-        </button>
-        <div className="admin-sub-header-title">
-          <FiShield /> Admin List
-        </div>
-        <div className="admin-sub-header-actions">
-          <button className="btn btn-refresh" onClick={loadData} disabled={loading}>
-            <FiRefreshCw className={loading ? 'spin' : ''} />
-            {loading ? 'Loading...' : 'Refresh'}
+    <div className="admin-list-page animate-fade-in pb-20">
+      <AdminListView
+        title="Admin List"
+        subtitle="View all administrators"
+        loading={loading}
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search admins by name or email..."
+        onRefresh={loadData}
+        refreshLabel="Refresh"
+        stats={stats}
+        emptyIcon={FiShield}
+        emptyMessage={searchQuery ? 'No admins match your search' : 'No admins found'}
+        actions={
+          <button 
+            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+            onClick={downloadPDF}
+          >
+            <FiDownload className="w-4 h-4" />
+            Download PDF
           </button>
-          <button className="btn btn-download" onClick={downloadPDF}>
-            <FiDownload /> Download PDF
-          </button>
-        </div>
-      </div>
-
-      <div className="admin-sub-stats">
-        <div className="sub-stat">
-          <FiShield className="sub-stat-icon" style={{ color: '#f093fb' }} />
-          <div className="sub-stat-info">
-            <span className="sub-stat-value">{admins.length}</span>
-            <span className="sub-stat-label">Total Admins</span>
-          </div>
-        </div>
-        <div className="sub-stat">
-          <FiStar className="sub-stat-icon" style={{ color: '#f5576c' }} />
-          <div className="sub-stat-info">
-            <span className="sub-stat-value">{admins.filter(a => a.role === 'admin').length}</span>
-            <span className="sub-stat-label">Admins</span>
-          </div>
-        </div>
-        <div className="sub-stat">
-          <FiUser className="sub-stat-icon" style={{ color: '#4facfe' }} />
-          <div className="sub-stat-info">
-            <span className="sub-stat-value">{admins.filter(a => a.role === 'subadmin').length}</span>
-            <span className="sub-stat-label">Subadmins</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="admin-filters">
-        <div className="filter-group">
-          <FiSearch className="filter-icon" />
-          <input
-            type="text"
-            className="filter-input"
-            placeholder="Search admins by name or email..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+        }
+      >
+        {filteredAdmins.map((admin, idx) => (
+          <AdminListTileAdmin
+            key={admin.docId}
+            admin={admin}
+            index={idx}
           />
-        </div>
-      </div>
-
-      <div className="admin-table-container">
-        {filteredAdmins.length === 0 ? (
-          <div className="admin-empty-state">
-            <FiShield className="empty-icon" />
-            <p>No admins found</p>
-          </div>
-        ) : (
-          <div className="admin-cards-grid">
-            {filteredAdmins.map((admin, idx) => (
-              <div key={admin.docId} className="admin-card">
-                <div className="admin-card-header">
-                  <div className="admin-avatar">
-                    {admin.photoURL ? (
-                      <img src={admin.photoURL} alt={admin.fullName} />
-                    ) : (
-                      <FiUser />
-                    )}
-                  </div>
-                  <span className={`role-badge role-${admin.role}`}>
-                    {admin.role}
-                  </span>
-                </div>
-                <div className="admin-card-body">
-                  <h3 className="admin-name">{admin.fullName || 'No Name'}</h3>
-                  <p className="admin-email">
-                    <FiMail /> {admin.email || 'No email'}
-                  </p>
-                  <p className="admin-uid">
-                    <small>UID: {admin.uid.substring(0, 15)}...</small>
-                  </p>
-                </div>
-                <div className="admin-card-footer">
-                  <span className="admin-index">#{idx + 1}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+        ))}
+      </AdminListView>
+    </div>
   );
 }
