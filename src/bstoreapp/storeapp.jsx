@@ -36,6 +36,7 @@ import BottomNav from '../components/BottomNav';
 
 import { auth, db } from '../firebase';
 import SplashScreen from '../components/SplashScreen';
+import logo from './assets/images/logo.png';
 import '../logo-controller.css';
 import './bstoreapp.css';
 import '../components/SplashScreen.css';
